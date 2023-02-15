@@ -1,0 +1,227 @@
+#!/bin/bash
+#
+# This script generates a number of pdf files from the CABSL behavior.
+# Its main parameter is a file that directly includes all options.
+# It requires GraphViz's program 'dot' to be installed.
+#
+# Author: Thomas Röfer
+
+usage()
+{
+  echo >&2 "usage: $0 { options } <input header file> <output header file>"
+  echo >&2 "  options:"
+  echo >&2 "    -o <path>   set output path"
+  echo >&2 "    -h          show this help"
+  exit 1
+}
+
+set -eu
+
+scriptPath=$(echo $0 | sed "s|^\.\./|`pwd`/../|" | sed "s|^\./|`pwd`/|")
+baseDir=$(dirname "${scriptPath}")
+
+# Process arguments
+out=""
+verbose=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    "-o")
+        shift
+        if [ $# -gt 0 ]; then
+            out=$1
+        else
+            echo >&2 "error: parameter of '-o' missing"
+            usage
+        fi
+        ;;
+    "-h")
+      usage
+      ;;
+    "-v")
+      verbose=1
+      ;;
+    -*)
+      echo >&2 "error: unknown option '$1'"
+      usage
+      ;;
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+headerFileName="$2"
+
+# Collect the relevant information from the options
+base=`dirname $1`
+
+if [ -z "$out" ]; then
+    out="$base"
+fi
+
+files=`cat "$1" | sed -e 's/\/\/.*//' | sed -e 's/\/\*.*\*\///' | sed -E "s%#include\s+?\"([^\"]*)\"%${base}/\1%" | sed '/^\s*$/d'`
+options=`grep -h "^[    ]*option[   ]*(" $files | sed "s%^[     ]*option[   ]*([    ]*\([A-Za-z_][A-Za-z0-9_]*\).*$%\1%" | tr '\n' '|' | sed "s%|$%%"`
+
+lines=`cat $files \
+| sed "s%//.*%%" \
+| sed -E "s%^(\s+)?}%}\n%" \
+| tr '\t' ' ' \
+| tr -d '\r' \
+| tr '\n' '\t' \
+| sed -e "s%/\*\([^*]*\*[^/]\)*[^*]*\*\**/%%g" \
+  -e "s%[ 	]*	%	%g" \
+| tr '\t' '\n' \
+| grep -E "^[ 	]*option[ 	]*\([ 	]*[A-Za-z_][A-Za-z0-9_]*|(^|^.*[^A-Za-z0-9_])((($options|state|initial_state|target_state|aborted_state)[ 	]*\()|goto[ 	][ 	]*[A-Za-z_][A-Za-z0-9_]*)" \
+| sed -E -e "s%^[ 	]*option[ 	]*\([ 	]*([A-Za-z_][A-Za-z0-9_]*).*%option \1%" \
+  -e "s%(^|^.*[^A-Za-z0-9_])($options)[ 	]*\(.*%call \2%" \
+  -e "s%(^|^.*[^A-Za-z0-9_])(state|initial_state|target_state|aborted_state)[ 	]*\(([A-Za-z_][A-Za-z0-9_]*).*%\2 \3%" \
+  -e "s%(^|^.*[^A-Za-z0-9_])goto[ 	][ 	]*([A-Za-z_][A-Za-z0-9_]*).*%goto \2%"`
+
+# Generate temporary files containing all nodes and edges
+optionsTmp=${out}/options.tmp
+rm -f "$optionsTmp"
+option=
+while read line; do
+  type=`sed "s% .*%%" <<<"$line"`
+  id=`sed "s%[^ ]* %%" <<<"$line"`
+  label=`sed -E -e "s%_%\\\\\n%g" -e "s%([a-z])([A-Z])%\1\\\\\n\2%g" <<<"$id" | tr '[:upper:]' '[:lower:]'`
+  if [ "$type" == "option" ]; then
+    option=$id
+    if [ "$verbose" == "1" ]; then
+      echo "Reading option '$option'" >&2
+    fi
+    echo "  $id [label=\"$label\"];" >>"$optionsTmp"
+    common=
+    state=
+    internalTmp=${out}/internal_$option.tmp
+    rm -f "$internalTmp"
+  elif [ "$type" == "call" ]; then
+    echo "$option -> $id;" >>"$optionsTmp"
+    if [ "$state" == "" ]; then
+      echo "option_ [style = invis];" >>"$internalTmp"
+    fi
+  elif [ "$type" == "state" ]; then
+    state=$id
+    echo " $state [shape = circle, label = \"$label\"];" >>"$internalTmp"
+  elif [ "$type" == "initial_state" ]; then
+    state=$id
+    echo "  $state [shape = Mcircle, label = \"$label\"];" >>"$internalTmp"
+  elif [ "$type" == "target_state" ]; then
+    state=$id
+    echo "$state [shape = doublecircle, label = \"$label\"];" >>"$internalTmp"
+  elif [ "$type" == "aborted_state" ]; then
+    state=$id
+    echo "$state [shape = doubleoctagon, regular = true, label = \"$label\"];" >>"$internalTmp"
+  elif [ "$type" == "goto" ]; then
+    if [ -z "$state" ]; then
+      common=`echo "$common $id"`
+    elif [ "$state" != "$id" ]; then
+      echo "$state -> $id;" >>"$internalTmp"
+    fi
+  fi
+  if [ "$type" == "state" -o "$type" == "initial_state" -o "$type" == "target_state" -o "$type" == "aborted_state" ]; then
+    for target in $common; do
+      if [ "$state" != "$target" ]; then
+        echo "$state -> $target;" >>"$internalTmp"
+      fi
+    done
+  fi
+done <<<"$lines"
+
+# create out directory if not exists
+
+if [ ! -d "$out" ]; then
+    mkdir -p "$out"
+fi
+
+dotPath="$out/dots"
+
+if [ ! -d "$dotPath" ]; then
+    mkdir -p "$dotPath"
+fi
+
+rm -f "$dotPath"/*.dot
+
+# create header file
+headerPath="$out/$headerFileName"
+
+(
+    echo "#include <map>"
+    echo "#include <string>"
+    echo ""
+    echo "std::map<std::string, std::string> graphs = {"
+) > "$headerPath"
+
+
+optionsDot="$dotPath/options.dot"
+
+# Write the main option graph
+file="$dotPath/`basename "${1%.*}.dot"`"
+
+if [ "$verbose" == "1" ]; then
+  echo "Writing graph '$file'" >&2
+fi
+(
+  echo "digraph G {"
+  echo "  margin = 0;"
+  echo "  node [shape = box, fontname = Arial, fontsize=9, fontcolor = \"#005A9C\", margin = 0.05];"
+  echo "  edge [arrowsize=0.8];"
+  sort <"$optionsTmp" | uniq
+  rm "$optionsTmp"
+  echo "}"
+) > "$optionsDot"
+
+(
+    echo "{\"options\", R\"==DOT==("
+    cat "$optionsDot"
+    echo ")==DOT==\"},"
+) >> "$headerPath"
+
+# Write graphs for all options
+options=`tr '|' '\n' <<<"$options"`
+while read option; do
+  internalTmp=${out}/internal_$option.tmp
+  if [ -e "$internalTmp" ]; then
+    internalDot="$dotPath/$option.dot"
+    file="$dotPath/`basename "${option%.*}.dot"`"
+
+    label=`sed -E -e "s%_% %g" -e "s%([a-z])([A-Z])%\1 \2%g" <<<"$option" | tr '[:upper:]' '[:lower:]'`
+    if [ "$verbose" == "1" ]; then
+      echo "Writing dot '$file'" >&2
+    fi
+    (
+      echo "digraph G {"
+      echo "margin = 0;"
+      echo "node [style = filled, fillcolor = white, fontname = Arial, fontsize=9, fontcolor = \"#005A9C\", margin = 0.05];"
+      echo "ranksep = 0.4;"
+      echo "nodesep = 0.3;"
+      echo "edge [arrowsize=0.8];"
+      echo "compound = true;"
+      echo "subgraph cluster_ {"
+      echo "label = \"option '$label'\""
+      echo "labeljust = l;"
+      echo "style = filled;"
+      echo "fillcolor = \"#F4F4F4\";"
+      echo "fontname = Arial;"
+      echo "fontsize=12;"
+      echo "fontcolor = \"#005A9C\";"
+      sort <"$internalTmp" | uniq
+      rm "$internalTmp"
+      echo "}"
+      echo "}"
+    ) > "$internalDot"
+
+    (
+        echo "{\"${option%.*}\", R\"==DOT==("
+        cat "$internalDot"
+        echo ")==DOT==\"},"
+    ) >> "$headerPath"
+  fi
+done <<<"$options"
+
+echo "};" >> "$headerPath"
+
+if [ "$verbose" == "1" ]; then
+  echo "Created header file '$headerPath'" >&2
+fi

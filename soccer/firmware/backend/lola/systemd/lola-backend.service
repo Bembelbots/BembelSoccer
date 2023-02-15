@@ -1,0 +1,21 @@
+[Unit]
+Description=Bembelbots LoLA backend
+AssertPathExists=/data/home/nao/bin/lola-backend
+Requires=lola.service
+After=lola.service
+
+[Service]
+Type=simple
+LimitRTPRIO=36
+ExecStartPre=/usr/bin/amixer sset 'Capture',0 65536
+ExecStartPre=/usr/libexec/reset-cameras.sh toggle
+ExecStart=/data/home/nao/bin/lola-backend
+WorkingDirectory=/tmp
+Environment=AL_DIR=/home/nao
+Restart=always
+PrivateTmp=true
+NoNewPrivileges=true
+Slice=naoqi.slice
+
+[Install]
+WantedBy=default.target

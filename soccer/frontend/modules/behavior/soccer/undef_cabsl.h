@@ -1,0 +1,13 @@
+#undef aborted_state
+#undef action
+#undef action_aborted
+#undef action_done
+#undef common_transition
+#undef initial_state
+#undef option
+#undef option_time
+#undef state
+#undef state_time
+#undef target_state
+#undef transition
+#undef _state
