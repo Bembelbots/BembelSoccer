@@ -12,7 +12,7 @@ public:
     Angle() = default;
 
     explicit Angle(float radians)
-        : deg(Degrees(rad))
+        : deg(Degrees(radians))
         , rad(Radians(radians)) {}
 
     // cppcheck-suppress noExplicitConstructor
@@ -22,7 +22,7 @@ public:
 
     // cppcheck-suppress noExplicitConstructor
     Angle(Radians angle)
-        : deg(Degrees(rad))
+        : deg(Degrees(angle))
         , rad(angle) {}
 
     static Angle fromDegrees(float angle) { return Degrees(angle); }

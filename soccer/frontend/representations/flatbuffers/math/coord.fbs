@@ -1,0 +1,6 @@
+namespace bbapi;
+
+struct Coord (native_type: "CoordNative") {
+    x       : float;
+    y       : float;
+}

@@ -242,7 +242,7 @@ public:
     std::vector<DirectedCoord> getUnpenalizedPose() const;
     
     // state: initial -> start posi(s)
-    std::vector<DirectedCoord> getInitialPose(const int &robot_id, const RobotRole &role, const bool &seven = false) const;
+    std::vector<DirectedCoord> getInitialPose(const int &robot_id, const RobotRole &role) const;
 
     std::vector<DirectedCoord> getObstaclePositionsObstacleChallenge();
     std::vector<DirectedCoord> getObstaclePositionsPassingChallenge();

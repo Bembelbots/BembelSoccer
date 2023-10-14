@@ -2,6 +2,7 @@
 
 #include "endpoints.h"
 #include "linker.h"
+#include "util/util.h"
 
 #include <gsl/util>
 #include <memory>
@@ -13,37 +14,45 @@ namespace rt {
 
 class Kernel;
 
-class ModuleLoader {
+class ModuleBase {
 public:
-    ModuleLoader() = default;
-    virtual ~ModuleLoader() = default;
+    virtual ~ModuleBase() = default;
 
-    ModuleLoader(const ModuleLoader &) = delete;
-    ModuleLoader(ModuleLoader &&) = delete;
-    ModuleLoader &operator=(const ModuleLoader &) = delete;
-    ModuleLoader &operator=(ModuleLoader &&) = delete;
-    
-    virtual void connect(Linker &) {};
-    virtual void load(Kernel &) = 0;
+    virtual ModuleTag type() const {
+        return ModuleTag::Normal;
+    }
+
+    virtual bool disabled() const {
+        return false;
+    }
+
+    virtual void connect(Linker &) = 0;
+    virtual void load(Kernel &) {}
+    virtual void process() {}
     virtual void setup() {}
     virtual void stop() {}
 };
 
-class Module : public ModuleLoader {
+class Module : public ModuleBase {
 public:
     Module() = default;
     virtual ~Module() = default;
 
-    Module(const Module &) = delete;
-    Module(Module &&) = delete;
-    Module &operator=(const Module &) = delete;
-    Module &operator=(Module &&) = delete;
+    RT_DISABLE_COPY(Module)
 
-    void connect(Linker &) override = 0;
-    void load(Kernel &) override {}
-    virtual void process() = 0;
+    void process() override = 0;
 };
 
-
+class NoThreadModule : public ModuleBase {
+public:
+    NoThreadModule() = default;
+    virtual ~NoThreadModule() = default;
+    
+    RT_DISABLE_COPY(NoThreadModule)
+    
+    ModuleTag type() const override {
+        return ModuleTag::NoThread;
+    }
+};
 
 } // namespace rt

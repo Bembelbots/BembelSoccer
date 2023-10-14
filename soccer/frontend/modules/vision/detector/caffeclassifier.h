@@ -1,7 +1,9 @@
 #pragma once
 
 //#define CPU_ONLY
+#ifndef USE_OPENCV
 #define USE_OPENCV
+#endif
 
 #include <caffe/caffe.hpp>
 #ifdef USE_OPENCV

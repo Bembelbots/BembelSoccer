@@ -2,6 +2,7 @@
 #include <representations/camera/camera.h>
 
 #include <chrono>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <thread>
@@ -70,8 +71,10 @@ CamImage &ImageBuffer::getCaptureBuffer() {
     } while (i != curImg);
 
     // no free buffer found, bail out!
-    if (i == curImg)
+    if (i == curImg) {
+        debug();
         throw std::runtime_error("No free buffer to store new image!");
+    }
 
     capture = i;
     data[i].lock(ImgLock::CAPTURE);
@@ -83,6 +86,29 @@ void ImageBuffer::releaseCaptureBuffer() {
     assert(img.hasLock(ImgLock::CAPTURE)); // getCaptureBuffer() has not been called first
     curImg = capture.load();
     img.unlock(ImgLock::CAPTURE);
+}
+
+void ImageBuffer::debug() {
+    LOG_DEBUG << "=======================";
+    LOG_DEBUG << "ImageBuffer debug " << camName;
+    int c{0};
+    for (const auto &i: data) {
+        std::stringstream ss;
+        ss << c << "\t";
+        if (i.hasLock(ImgLock::CAPTURE))
+            ss << "C";
+        if (i.hasLock(ImgLock::VISION))
+            ss << "V";
+        if (i.hasLock(ImgLock::DEBUG))
+            ss << "V";
+        if (i.hasLock(ImgLock::WRITER))
+            ss << "W";
+
+        LOG_DEBUG << ss.str();
+        ++c;
+    }
+    LOG_DEBUG << "=======================";
+    LOG_FLUSH();
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

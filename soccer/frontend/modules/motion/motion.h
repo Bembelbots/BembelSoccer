@@ -3,23 +3,27 @@
 #include <representations/motion/body_commands.h>
 #include <representations/blackboards/settings.h>
 #include <representations/motion/body_state.h>
+#include <representations/bembelbots/feature_flags.h>
 #include "../nao/naostate.h"
 #include "bodycontrol/blackboards/body_interface.h"
 
+#include <cam_pose_message_generated.h>
+
 class BodyControl;
 
-class MotionModule : public rt::ModuleLoader {
+class MotionModule : public rt::NoThreadModule {
 public:
     void connect(rt::Linker &) override;
     void load(rt::Kernel &) override;
     void setup() override;
 private:
-    std::shared_ptr<rt::ModuleLoader> nao;
+    std::shared_ptr<rt::NoThreadModule> nao;
     std::shared_ptr<BodyControl> bc;
- 
+
     rt::Context<SettingsBlackboard> settings;
     rt::Output<BodyState, rt::Event> body_state;
-    rt::Dispatch<BodyCommand, rt::Handle> cmds;
+    rt::Command<BodyCommand, rt::Handle> cmds;
+    rt::Output<bbapi::CamPoseMessageT, rt::Event> camPose;
 
     BodyInterface interface;
 

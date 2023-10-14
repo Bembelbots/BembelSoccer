@@ -27,7 +27,6 @@ PlayingfieldPainter::PlayingfieldPainter(SVGBody &img, const PlayingField &field
   , svg(img) {}
 
 void PlayingfieldPainter::drawLines() {
-
     vector<LandmarkLine> lines = pf.getLines();
 
     for (const LandmarkLine &line : lines) {
@@ -38,7 +37,6 @@ void PlayingfieldPainter::drawLines() {
 }
 
 void PlayingfieldPainter::drawPoles() {
-
     vector<LandmarkPole> poles = pf.getPoles();
 
     for (const LandmarkPole &pole : poles) {
@@ -48,14 +46,13 @@ void PlayingfieldPainter::drawPoles() {
 
 
 void PlayingfieldPainter::drawCrosses() {
-
     for (const LandmarkCross &cross : pf._crosses) {
         drawLandmark(cross);
     }
 }
 
-void PlayingfieldPainter::drawReadyPositions(const bool &seven) {
-    const int players = (seven)?NUM_PLAYERS:5;
+void PlayingfieldPainter::drawReadyPositions() {
+    const int players = 7;
     for (int i = 0; i < players; ++i) {
         std::string num = std::to_string(i + 1);
 
@@ -67,11 +64,11 @@ void PlayingfieldPainter::drawReadyPositions(const bool &seven) {
     }
 }
 
-void PlayingfieldPainter::drawInitialPositions(const bool &seven) {
-    const int players = (seven)?NUM_PLAYERS:5;
-    const std::string color = (seven)?"silver":"black";
+void PlayingfieldPainter::drawInitialPositions() {
+    const int players = 7;
+    const std::string color = "black";
     for (int i = 0; i < players; ++i) {
-        vector <DirectedCoord> poses = pf.getInitialPose(i, RobotRole::NONE, seven);
+        vector <DirectedCoord> poses = pf.getInitialPose(i, RobotRole::NONE);
         std::string num = std::to_string(i+1);
         for (auto p: poses)
             svg.addText(p.coord.x, p.coord.y, num, color, "Initial_" + num);
@@ -79,8 +76,6 @@ void PlayingfieldPainter::drawInitialPositions(const bool &seven) {
 }
 
 void PlayingfieldPainter::drawChallengePositions() {
-    drawInitialPositions(true);
-    drawReadyPositions(true);
 }
 
 void PlayingfieldPainter::drawLandmark(LandmarkLine line) {

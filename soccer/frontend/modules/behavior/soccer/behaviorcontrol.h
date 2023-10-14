@@ -6,6 +6,7 @@
 #include <representations/motion/body_state.h>
 #include <representations/motion/body_commands.h>
 #include <representations/whistle/whistleresult.h>
+#include <representations/teamcomm/commands.h>
 
 #include "behavior.h"
 #include "framework/rt/endpoints.h"
@@ -37,8 +38,9 @@ private:
     rt::Input<WhistleResult, rt::Snoop> whistle;
 
     //rt::Output<DynamicRoleMessage> dynamicRole;
-    rt::Dispatch<BodyCommand> bodyCmds;
-    rt::Dispatch<WhistleCommand> whistleCmds;
+    rt::Command<BodyCommand> bodyCmds;
+    rt::Command<WhistleCommand> whistleCmds;
+    rt::Command<TeamcommCommand> teamcommCmds;
 
     std::shared_ptr<Behavior> _myBehavior;
 

@@ -107,7 +107,7 @@ void Gamecontrol::recv(const char *msg, const size_t &bytes_recvd,
     ep.port(GAMECONTROLLER_RETURN_PORT);
   
     // send alive packet (approx. every 500ms)
-    if ((getTimestampMs() - lastAlive) > 400) {
+    if ((getTimestampMs() - lastAlive) > 500) {
         auto &ball = (*world)->myBallPoseWcs;
         auto &robot = (*world)->allRobots[settings->id];
         
@@ -217,11 +217,18 @@ void Gamecontrol::updateBB() {
 
         bb->secsTillUnpenalised = r.secsTillUnpenalised;
 
-        auto newColor = TeamColor(d.teams[idx].teamColour);
-        if (newColor != bb->teamColor) {
-            LOG_INFO << "setting teamColor to " << int(bb->teamColor);
+        auto newColor = TeamColor(d.teams[idx].fieldPlayerColour);
+        if (newColor != bb->fieldPlayerColor) {
+            LOG_INFO << "setting fieldPlayerColor to " << int(bb->fieldPlayerColor);
         }
-        bb->teamColor = newColor;
+        bb->fieldPlayerColor = newColor;
+        
+        newColor = TeamColor(d.teams[idx].goalkeeperColour);
+        if (newColor != bb->goalkeeperColor) {
+            LOG_INFO << "setting goalkeeperColor to " << int(bb->goalkeeperColor);
+        }
+        bb->goalkeeperColor = newColor;
+
         bb->score = d.teams[idx].score;
         bb->penaltyShot = d.teams[idx].penaltyShot;
         bb->singleShots = d.teams[idx].singleShots;
@@ -229,7 +236,8 @@ void Gamecontrol::updateBB() {
 
         int opponent = 1 - idx;
         bb->opponentTeamNumber = d.teams[opponent].teamNumber;
-        bb->opponentTeamColor = TeamColor(d.teams[opponent].teamColour);
+        bb->opponentFieldPlayerColor = TeamColor(d.teams[opponent].fieldPlayerColour);
+        bb->opponentGoalkeeperColor = TeamColor(d.teams[opponent].goalkeeperColour);
         bb->opponentScore = d.teams[opponent].score;
         bb->opponentPenaltyShot = d.teams[opponent].penaltyShot;
         bb->opponentSingleShots = d.teams[opponent].singleShots;

@@ -89,7 +89,7 @@ struct ThreadManager {
     }
 
     template<typename T, typename Callable, typename ...Args>
-    void create(T type, Callable &&fn, Args && ...args) {
+    size_t create(T type, Callable &&fn, Args && ...args) {
         using namespace std::chrono_literals;
         std::scoped_lock lock(mtx);
         
@@ -115,6 +115,8 @@ struct ThreadManager {
         } else {
             LOG_WARN << "thread not ready!";
         }
+
+        return threads.size() - 1;
     }
     
     template<typename T>
@@ -131,6 +133,20 @@ struct ThreadManager {
             }
         }
         threads.clear();
+    }
+
+    void join(size_t thread_id) {
+        // TODO: recycle thread id
+
+        if(thread_id >= threads.size()) {
+            return;
+        }
+
+        auto &thread = threads[thread_id];
+
+        if(thread.joinable()) {
+            thread.join();
+        }
     }
 
     bool isRunning() const {

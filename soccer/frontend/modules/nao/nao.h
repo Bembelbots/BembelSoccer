@@ -3,18 +3,18 @@
 #include "naostate.h"
 
 struct BBActuatorData;
-struct BBSensorData;
+class  BBSensorData;
 struct NaoModules;
 
 using SensorCallback = std::function<void(NaoState &)>;
 
-class Nao : public rt::ModuleLoader {
+class Nao : public rt::NoThreadModule {
 public:
     Nao();
-    ~Nao();
     void load(rt::Kernel &) override;
+    void connect(rt::Linker &) override;
     void stop() override;
     void set_sensor_callback(SensorCallback);
 private:
-    NaoModules* modules{nullptr};
+    std::shared_ptr<NaoModules> modules {nullptr};
 };

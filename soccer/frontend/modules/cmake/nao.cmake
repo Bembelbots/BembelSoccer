@@ -15,15 +15,10 @@ PRIVATE
     ${MODNAO_DIR}/say/nao_say_backend.cpp
 
     ${MODNAO_DIR}/nao.cpp
+    
+	${MODNAO_DIR}/camera/CameraV4L2.cpp
+    ${MODNAO_DIR}/camera/sources/v6videosource.cpp
 )
 
-if(${V6})
-    target_sources(libfrontend
-    PRIVATE
-        ${MODNAO_DIR}/camera/CameraV4L2.cpp
-        ${MODNAO_DIR}/camera/sources/v6videosource.cpp
-    )
-endif(${V6})
-
 add_library(modnao INTERFACE)
-target_link_libraries(modnao INTERFACE libbembelbots ${OpenCV_LIBS})
+target_link_libraries(modnao INTERFACE libbembelbots atomic ${OpenCV_LIBS})

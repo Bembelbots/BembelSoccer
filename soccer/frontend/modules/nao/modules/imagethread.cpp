@@ -52,8 +52,8 @@ void ImageThread::setup() {
         auto f2 = std::async(&NaoCameras::openCamera, cameras, BOTTOM_CAMERA, settings->simulatorHost, settings->docker);
     }
 
-    image_provider->top.initialize(150, TOP_CAMERA, settings->simulator);
-    image_provider->bottom.initialize(150, BOTTOM_CAMERA, settings->simulator);
+    image_provider->top.initialize(500, TOP_CAMERA, settings->simulator);
+    image_provider->bottom.initialize(500, BOTTOM_CAMERA, settings->simulator);
 
     LOG_INFO << "ImageProvider: started the cameras";
 }

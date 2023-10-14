@@ -1,0 +1,6 @@
+namespace bbapi;
+
+table TeamMessage {
+}
+
+root_type TeamMessage;

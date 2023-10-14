@@ -1,0 +1,10 @@
+include "../math/directed_coord.fbs";
+
+namespace bbapi;
+
+table LocalizationMessage {
+    pose        : DirectedCoord (native_inline);
+    confidence  : float;
+    gt_timestamp : int32;
+    gt_position  : DirectedCoord (native_inline);
+}

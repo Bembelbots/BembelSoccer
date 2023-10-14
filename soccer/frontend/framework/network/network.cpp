@@ -2,6 +2,7 @@
 
 #include "network.h"
 #include "../thread/threadmanager.h"
+#include "thread/util.h"
 #include <iostream>
 
 std::shared_ptr<NetworkIO> Network::_io = nullptr;
@@ -21,6 +22,7 @@ NetworkIO::~NetworkIO() {
 
 void NetworkIO::worker(ThreadContext *context) {
     context->notifyReady();
+    set_current_thread_name("NetworkIO");
     _io_service.run();
 }
 

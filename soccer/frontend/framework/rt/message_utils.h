@@ -39,7 +39,10 @@ template<typename T>
 struct is_blob : std::is_base_of<BlobBase, T> {};
 
 template<typename T>
-inline constexpr bool is_blob_v = is_blob<T>::value;
+constexpr bool is_blob_v = is_blob<T>::value;
+
+template<typename T, bool condition = true, typename T_ = std::nullptr_t>
+using enable_blob_t = typename std::enable_if_t<is_blob_v<T> == condition, T_>;
 
 template<typename T, typename P = NoPayload>
 struct Blob : public BlobBase {

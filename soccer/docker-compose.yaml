@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  bembelbuild:
+    container_name: bembelbuild
+    image: bembelbuild
+    platform: linux/amd64
+    stdin_open: true
+    tty: true
+    env_file: .build.env
+    volumes:
+      - ./.ccache/:/home/nao/.ccache
+      - ../:/src

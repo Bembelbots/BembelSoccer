@@ -45,4 +45,4 @@ target_include_directories(modmotion
 INTERFACE
     ${MODMOTION_DIR}
 )
-target_link_libraries(modmotion INTERFACE Eigen)
+target_link_libraries(modmotion INTERFACE Eigen3::Eigen)

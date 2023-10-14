@@ -38,7 +38,8 @@ public:
 
     // team info
     MAKE_VAR(int, teamNumber);
-    MAKE_VAR(TeamColor, teamColor);
+    MAKE_VAR(TeamColor, fieldPlayerColor);
+    MAKE_VAR(TeamColor, goalkeeperColor);
     MAKE_VAR(int, score);
     MAKE_VAR(int, penaltyShot);
     MAKE_VAR(int, singleShots);
@@ -52,6 +53,8 @@ public:
     // opponent team's info
     MAKE_VAR(int, opponentTeamNumber);
     MAKE_VAR(TeamColor, opponentTeamColor);
+    MAKE_VAR(TeamColor, opponentFieldPlayerColor);
+    MAKE_VAR(TeamColor, opponentGoalkeeperColor);
     MAKE_VAR(int, opponentScore);
     MAKE_VAR(int, opponentPenaltyShot);
     MAKE_VAR(int, opponentSingleShots);

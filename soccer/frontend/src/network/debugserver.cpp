@@ -158,9 +158,16 @@ void DebugServer::recv(const char *msg, const size_t &bytes_recvd,
             //response.push_back(std::make_pair("debugv2", debugV2));
             //send(response, sender);
         } else if (msg_type == "save_blackboards") {
-            LOG_INFO << "Saving blackboards.";
-            LOG_SAY << "Saving blackboards.";
             bool saveOk = config->saveSettings();
+
+            std::string sayMsg = "Saved blackboards.";
+            if(!saveOk) {
+                sayMsg = "Error saving blackboards.";
+            }
+
+            LOG_INFO << sayMsg;
+            LOG_SAY << sayMsg;
+
             std::string answer =
                 (saveOk) ? "save_blackboards_ok" : "save_blackboards_error";
             debugV2.put("msg_type", answer);

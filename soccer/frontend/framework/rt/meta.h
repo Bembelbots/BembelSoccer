@@ -1,8 +1,8 @@
 #pragma once
 
-#include "type_info.h"
+#include "util/type_info.h"
+#include "module_tags.h"
 
-#include <gsl/util>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -51,16 +51,16 @@ struct ModuleMeta {
     std::vector<Requirement> readyFuncs;
     std::vector<UpdateFunc> preProcess;
     std::vector<UpdateFunc> postProcess;
-    std::vector<gsl::final_action<CleanupFunc>> cleanup;
 
     std::string name;
+    ModuleTag tags = ModuleTag::None;
     ModuleId id = INVALID_ID;
 
     std::vector<EndpointId> endpoints;
     std::vector<std::shared_ptr<BlackboardBase>> blackboards;
     std::vector<ModuleId> requiredBy;
 
-    bool ready();
+    bool ready() const;
 
     void doPreProcess();
     void doPostProcess();
@@ -84,6 +84,10 @@ struct Metadata {
     EndpointId firstOut(ChannelId) const;
 
     std::string dumpGraph() const;
+    std::string printModule(const ModuleMeta &module) const;
+    
+    std::string channelError(ChannelId id, std::string_view errorMsg);
+    std::string moduleError(ModuleId id, std::string_view errorMsg);
 };
 
 } // namespace rt

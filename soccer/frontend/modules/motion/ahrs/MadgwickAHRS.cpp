@@ -16,6 +16,7 @@
 // Header files
 
 #include "MadgwickAHRS.h"
+#include <immintrin.h>
 #include <representations/bembelbots/constants.h>
 
 namespace Madgwick {
@@ -23,11 +24,7 @@ namespace Madgwick {
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#if V6
 static constexpr float sampleFreq{1000.0f/CONST::lola_cycle_ms};
-#else
-static constexpr float sampleFreq{100.0f};		// sample frequency in Hz
-#endif
 static constexpr float betaDef{0.1f};		// 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
@@ -39,13 +36,10 @@ volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f,
 
 
 static inline float invSqrt(float x) {
- 	float halfx = 0.5f * x;
-	float y = x;
-	long i = *(long *)&y;   // cppcheck-suppress invalidPointerCast
-	i = 0x5f3759df - (i>>1);
-	y = *(float *)&i;       // cppcheck-suppress invalidPointerCast
-	y = y * (1.5f - (halfx * y * y));
-	return y;
+    // replaced quake inverse sqrt hack with SSE instruction
+    __m128 temp = _mm_set_ss(x);
+    temp = _mm_rsqrt_ss(temp);
+    return _mm_cvtss_f32(temp);
 }
 
 

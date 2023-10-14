@@ -1,0 +1,44 @@
+diff -ur a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2023-10-09 21:59:12.206051146 +0200
++++ b/CMakeLists.txt	2023-02-28 16:10:20.000000000 +0100
+@@ -46,7 +46,7 @@
+ include(cmake/Dependencies.cmake)
+ 
+ # ---[ Flags
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=atom -mtune=atom")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=silvermont -mtune=silvermont -mfpmath=sse -msse4.2")
+ if(UNIX OR APPLE)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
+ endif()
+Only in a: .git
+diff -ur a/src/caffe/layers/window_data_layer.cpp b/src/caffe/layers/window_data_layer.cpp
+--- a/src/caffe/layers/window_data_layer.cpp	2023-10-09 21:59:12.282051771 +0200
++++ b/src/caffe/layers/window_data_layer.cpp	2023-02-28 15:56:20.000000000 +0100
+@@ -11,6 +11,7 @@
+ #include "opencv2/core/core.hpp"
+ #include "opencv2/highgui/highgui.hpp"
+ #include "opencv2/imgproc/imgproc.hpp"
++#include "opencv2/imgcodecs/legacy/constants_c.h"
+ 
+ #include "caffe/data_transformer.hpp"
+ #include "caffe/internal_thread.hpp"
+diff -ur a/src/caffe/util/io.cpp b/src/caffe/util/io.cpp
+--- a/src/caffe/util/io.cpp	2023-10-09 21:59:12.290051835 +0200
++++ b/src/caffe/util/io.cpp	2023-02-28 15:56:59.000000000 +0100
+@@ -7,6 +7,7 @@
+ #include <opencv2/highgui/highgui.hpp>
+ #include <opencv2/highgui/highgui_c.h>
+ #include <opencv2/imgproc/imgproc.hpp>
++#include <opencv2/imgcodecs/legacy/constants_c.h>
+ #endif  // USE_OPENCV
+ #include <stdint.h>
+ 
+@@ -54,7 +55,7 @@
+   CHECK_NE(fd, -1) << "File not found: " << filename;
+   ZeroCopyInputStream* raw_input = new FileInputStream(fd);
+   CodedInputStream* coded_input = new CodedInputStream(raw_input);
+-  coded_input->SetTotalBytesLimit(kProtoReadBytesLimit, 536870912);
++  coded_input->SetTotalBytesLimit(kProtoReadBytesLimit);
+ 
+   bool success = proto->ParseFromCodedStream(coded_input);
+ 

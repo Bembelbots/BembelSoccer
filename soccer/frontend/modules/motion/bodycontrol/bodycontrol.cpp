@@ -191,7 +191,7 @@ void BodyControl::setup(SubModule::Setup s) {
 }
 
 BodyState BodyControl::step(
-        rt::Dispatch<BodyCommand, rt::Handle> &commands, BBActuatorData *actuatorData, const BBSensorData *sensorData) {
+        rt::Command<BodyCommand, rt::Handle> &commands, BBActuatorData *actuatorData, const BBSensorData *sensorData) {
     if (sensorData){
         bodyblackboard.sensors.fill(sensorData->sensors);
 

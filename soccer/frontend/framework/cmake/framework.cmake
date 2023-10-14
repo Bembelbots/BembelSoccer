@@ -10,6 +10,7 @@ include(${BBFRAMEWORK_CMAKE_PATH}/image.cmake)
 include(${BBFRAMEWORK_CMAKE_PATH}/network.cmake)
 include(${BBFRAMEWORK_CMAKE_PATH}/serialize.cmake)
 include(${BBFRAMEWORK_CMAKE_PATH}/benchmark.cmake)
+include(${BBFRAMEWORK_CMAKE_PATH}/thread.cmake)
 
 target_include_directories(bbframework
 PUBLIC
@@ -29,6 +30,8 @@ PUBLIC
     bbnetwork
     bbserialize
     bbbenchmark
+    bbthread
     ${OpenCV_LIBS}
+    PkgConfig::SPEECHD
 )
 add_dependencies(bbframework git_submodules)

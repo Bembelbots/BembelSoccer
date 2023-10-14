@@ -46,10 +46,6 @@ void CameraConfig::setParameter(const int camera,
     } else {
         cameras->bottom->setParameter(option, value);
     }
-
-#if !V6
-    sleep_for(200ms);
-#endif
 }
 
 int CameraConfig::Exposure(const int camera) {

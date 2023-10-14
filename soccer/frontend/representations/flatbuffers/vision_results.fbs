@@ -1,0 +1,72 @@
+include "math/coord.fbs";
+
+namespace bbapi;
+
+enum Camera : byte {
+    TOP = 0,
+    BOTTOM
+}
+
+table Box {
+    top_left     : Coord (native_inline);
+    bottom_right : Coord (native_inline);
+}
+
+table Circle {
+    center      : Coord (native_inline);
+    radius      : float;
+}
+
+table LineSegment {
+    start   : Coord (native_inline);
+    end     : Coord (native_inline);
+}
+
+table ConvexHull {
+    points : [Coord];
+}
+
+union Geometry2D {
+    Box,
+    Circle,
+    LineSegment,
+    ConvexHull
+}
+
+enum DetectedObject : uint32 {
+    NONE = 0, 
+    BALL,
+    LINE,
+    CENTER_CIRCLE,
+    T_CROSSING,
+    L_CROSSING,
+    PENALTY_MARK,
+    ROBOT
+}
+
+struct RGBAColor {
+    r : uint8;
+    g : uint8;
+    b : uint8;
+    a : uint8;
+}
+
+table VisionDebug {
+    color       : RGBAColor;
+    geometry    : Geometry2D;
+}
+
+table VisionDetection {
+    type        : DetectedObject;
+    ics         : Geometry2D;
+    rcs         : Geometry2D;
+    rotation    : float;
+    confidence  : float;
+}
+
+table VisionResult {
+    timestamp   : uint32;
+    camera      : Camera;
+    detections  : [VisionDetection];
+    debug       : [VisionDebug];
+}

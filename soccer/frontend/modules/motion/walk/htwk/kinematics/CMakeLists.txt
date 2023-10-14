@@ -15,7 +15,7 @@ add_library(${PROJECT_NAME}
     PositionFeet.h
     PositionPlain.h
 )
-target_link_libraries(${PROJECT_NAME} utils Eigen)
+target_link_libraries(${PROJECT_NAME} utils Eigen3::Eigen)
 target_include_directories(${PROJECT_NAME} PUBLIC .)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 14

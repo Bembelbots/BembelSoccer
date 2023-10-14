@@ -28,17 +28,10 @@ public:
 
 // camera field of view
 // got those from the nao documenatation. those are only used as a fallback because otherwise not accurate enough.
-#if V6
     // (pi / 180) * 56.3
     static constexpr float VIEW_HORIZONTAL = 0.982620f;
     // (pi / 180) * 43.7
     static constexpr float VIEW_VERTICAL = 0.762709f;
-#else
-    // (pi / 180) * 60.97
-    static constexpr float VIEW_HORIZONTAL = 1.0641272449f;
-    // (pi / 180) * 47.64
-    static constexpr float VIEW_VERTICAL = 0.83147485565f;
-#endif
 
     // default constructor
     CamImage() : YuvImage() { _init(); };

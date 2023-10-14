@@ -11,12 +11,16 @@
 
 #include <lola/connector.h>
 
+#include <framework/simple_application.h>
+#include <framework/util/assert.h>
+#include <framework/util/getenv.h>
 #include <framework/util/buildinfo.hpp>
 
 using boost::asio::ip::address_v4;
 using boost::asio::ip::tcp;
 using boost::asio::local::stream_protocol;
 using namespace std::chrono_literals;
+using std::this_thread::sleep_for;
 namespace po = boost::program_options;
 
 static lola::Connector *c;
@@ -46,11 +50,15 @@ int main(int argc, char **argv) {
     lola::Connector::endpoint_t ep;
     static const std::string SOCK_PATH{"/tmp/robocup"};
 
+    XLogger logger("lola-backend");
+    CreateXLoggerThread(&logger);
+
     po::options_description desc("Allowed options");
     desc.add_options()
             ("help,h", "produce help message.")
             ("tcp,t", "use TCP instead of UNIX socket.")
             ("endpoint,e", po::value<std::string>(), "specify connection endpoint (UNIX: <socket path>, TCP: <port> or <ip:port>)")
+            ("docker", "simulation mode inside docker container. Reads additional options from environment variables.")
             ("buildinfo", "print buildinfo");
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -67,12 +75,21 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    if (vm.count("tcp")) {
+    if (vm.count("tcp") || vm.count("docker")) {
         // use TCP socket
         tcp::endpoint tcp_ep(address_v4::loopback(), 10000);
 
-        // parse TCP endpoint
-        if (vm.count("endpoint")) {
+        if (vm.count("docker")) {
+            // use docker environment variables
+            const std::string lola_port{getEnvVar("LOLA_PORT")},
+                  sim_host{getEnvVar("SIMULATOR_HOST")};
+            jsassert(!lola_port.empty()) << "set LOLA_PORT environment variable for docker mode!";
+            jsassert(!sim_host.empty()) << "set SIMULATOR_HOST environment variable for docker mode!";
+            int port = std::stoi(lola_port);
+            tcp_ep = tcp::endpoint(address_v4::from_string(sim_host), port);
+            
+        } else if (vm.count("endpoint")) {
+            // parse TCP endpoint
             std::string ep_string{vm["endpoint"].as<std::string>()};
             auto i = ep_string.find_first_of(':');
             if (i == std::string::npos) {
@@ -102,10 +119,15 @@ int main(int argc, char **argv) {
     c = new lola::Connector(s, ep);
 
     std::cout << "Running LoLA connector" << std::endl;
-    c->run();
+    bool shutdown = c->run();
     unstiff(s);
-
     delete c;
+
+    if (shutdown) {
+        sleep_for(2s); // sleep for TTS :/
+        system("/usr/bin/sudo /usr/sbin/poweroff");
+    }
+
     return 0;
 }
 

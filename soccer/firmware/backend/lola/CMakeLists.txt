@@ -11,4 +11,15 @@ add_executable(${PROJECT_NAME} ${SRC})
 detach_dbg_info(${PROJECT_NAME})
 add_buildinfo(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} libbembelbots stdc++fs Eigen elfio rt pthread boost_system boost_filesystem boost_program_options)
+target_link_libraries(${PROJECT_NAME}
+	libbembelbots
+	stdc++fs
+	Eigen3::Eigen
+	elfio
+	rt
+	pthread
+	boost_system
+	boost_filesystem
+	boost_program_options
+	PkgConfig::SPEECHD
+)

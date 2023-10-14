@@ -70,6 +70,8 @@ public:
     DirectedCoord operator+(const DirectedCoord &other) const;
     DirectedCoord operator*(const DirectedCoord &other) const;
 
+    bool operator==(const DirectedCoord &other) const;
+
     bool isNull() const;
 
     Angle angle;

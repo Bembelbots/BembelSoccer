@@ -1,11 +1,10 @@
 #pragma once
 
-//#include <core/gamecontrolblackboard.h>
+#include "particlefilter.h"
 
-//#include <worldmodel/definitions.h>
-//#include <worldmodel/worldmodel.h>
 #include <framework/rt/module.h>
 #include <framework/util/clock.h>
+
 #include <representations/blackboards/settings.h>
 #include <representations/motion/body_state.h>
 #include <representations/vision/visiondefinitions.h>
@@ -13,7 +12,7 @@
 #include <representations/worldmodel/definitions.h>
 #include <representations/blackboards/gamecontrol.h>
 #include <representations/localization/locamessage.h>
-#include "particlefilter.h"
+#include <representations/flatbuffers/flatbuffers.h>
 
 class PoseBlackboard;
 class HypothesesGenerator;
@@ -33,7 +32,7 @@ private:
     rt::Input<BodyState> body;
     rt::Input<Snapshot<GamecontrolBlackboard>> _gamecontrol;
     rt::Input<VisionResultVec, rt::Require> visionResults;
-    rt::Output<LocalizationMessage> locamessage;
+    rt::Output<bbapi::LocalizationMessageT, rt::OutputFlag> locamessage;
 
     std::shared_ptr<PoseBlackboard> _poseBlackboard;
     std::shared_ptr<HypothesesGenerator> locaHypoGenerator;

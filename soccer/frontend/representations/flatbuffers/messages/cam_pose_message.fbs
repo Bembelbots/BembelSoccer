@@ -1,0 +1,13 @@
+namespace bbapi;
+
+struct CamPose {
+    v: [float:3];
+    r: [float:3];
+}
+
+table CamPoseMessage {
+    top: CamPose;
+    bottom: CamPose;
+}
+
+root_type CamPoseMessage;

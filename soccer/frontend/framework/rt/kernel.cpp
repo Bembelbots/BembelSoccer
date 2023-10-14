@@ -1,54 +1,107 @@
 #include "kernel.h"
 
-#include "depth_first_search.h"
+#include "util/depth_first_search.h"
 #include "meta.h"
 
 #include "../blackboard/blackboard.h"
 #include "../util/assert.h"
 #include "../thread/util.h"
+#include "../thread/threadmanager.h"
 
 #include <iostream>
 #include <sstream>
 
 using namespace rt;
 
-ModuleId Kernel::addModule(Module *module, ModuleId expectedId) {
-    jsassert(expectedId == modules.size());
+bool Kernel::isModule(ModuleId id) const {
+    return modules[id] != nullptr;
+}
+    
+bool Kernel::isReady(ModuleId id) const {
+    return meta.modules.at(id).ready();
+}
+
+bool Kernel::isRunning() const {
+    return state == State::RUNNING_SEQ || state == State::RUNNING_ASYNC;
+}
+
+ModuleId Kernel::addModule(ModuleBase* module, LinkContext &&link) {
+    jsassert(state == State::SETUP);
     modules.emplace_back(module);
-    return expectedId;
+    linkContexts.emplace_back(link);
+    return modules.size();
 }
 
-std::string Kernel::composeError(std::string_view prefix, std::string_view errorMsg) {
-    // TODO: Use c++20 std::format for error messages to make composing easier
-    return std::string("  - ") + std::string(prefix) + ": " + std::string(errorMsg) + "\n";
+ModuleId Kernel::load(ModuleBase* module, ModuleMeta &moduleMeta) {
+    using namespace std::placeholders;
+    jsassert(module != nullptr);
+    jsassert(state == State::SETUP);
+    if(module->disabled()) {
+        return INVALID_ID;
+    }
+    moduleMeta.tags |= module->type();
+    auto connect    = std::bind(&Module::connect, module, _1);
+    auto setup      = std::bind(&Module::setup, module);
+    LinkContext context (moduleMeta, std::move(connect), std::move(setup));
+    ModuleId id = addModule(module, std::move(context));
+    module->load(*this);
+    return id;
 }
 
-std::string Kernel::channelError(ChannelId id, std::string_view errorMsg) const {
-    auto &chan = meta.channels.at(id);
-    std::string messageName = prettyTypeName(chan.dataType);
+ModuleId Kernel::load(ModuleBase *module) {
+    jsassert(state == State::SETUP);
+    if(module->disabled()) {
+        return INVALID_ID;
+    }
+    ModuleMeta moduleMeta;
+    return load(module, moduleMeta);
+}
 
-    std::string messageType = "<<< UNKNOW MESSAGE TYPE >>>";
-    switch (chan.kind) {
-        case ChannelMeta::Type::BLOB:
-        case ChannelMeta::Type::MESSAGE:
-            messageType = "Message";
-            break;
-        case ChannelMeta::Type::COMMAND:
-            messageType = "Commands of type";
-            break;
-        case ChannelMeta::Type::CONTEXT:
-            messageType = "Context";
-            break;
+ModuleId Kernel::loadLogger(ModuleBase *module) {
+    jsassert(state == State::SETUP);
+    jsassert(loggerAttached == false); // only one logger allowed
+    if(module->disabled()) {
+        return INVALID_ID;
+    }
+    ModuleMeta moduleMeta;
+    moduleMeta.tags |= ModuleTag::Logger;
+    loggerAttached = true;
+    return load(module, moduleMeta);
+}
+
+ModuleId Kernel::hook(std::string_view name, ConnectFn connect, SetupFn setup) {
+    jsassert(state == State::SETUP);
+    ModuleMeta moduleMeta;
+    moduleMeta.name = name;
+    moduleMeta.tags |= ModuleTag::Hook | ModuleTag::NoThread;
+    return addModule(nullptr, LinkContext(moduleMeta, connect, setup));
+}
+
+Kernel::CompileResult Kernel::compile() {
+    link();
+    return resolve();
+}
+
+void Kernel::link() {
+    ModuleTag extra = ModuleTag::None;
+
+    if(not loggerAttached) {
+        LOG_WARN << "no logger attached disabling logging!";
+        extra |= ModuleTag::DisableLogging;
     }
 
-    return composeError(messageType + " '" + messageName + "'", errorMsg);
+    for (ModuleId m = 0; m < modules.size(); m++) {
+        LinkContext &module = linkContexts.at(m);
+        Linker l(context, meta);
+        l.module = module.moduleMeta;
+        l.name = l.module.name;
+        l.module.tags |= extra;
+        module.connect(l);
+        jsassert(m == l.finish());
+    }
 }
 
-std::string Kernel::moduleError(ModuleId id, std::string_view errorMsg) const {
-    return composeError("Module '" + meta.modules.at(id).name + "'", errorMsg);
-}
-
-std::pair<bool, std::string> Kernel::resolve() {
+Kernel::CompileResult Kernel::resolve() {
     jsassert(modules.size() == meta.modules.size());
     jsassert(state == State::SETUP);
 
@@ -64,7 +117,7 @@ std::pair<bool, std::string> Kernel::resolve() {
     DepthFirstSearch dfs;
     std::vector<CircularDep> circularDeps = dfs.findCycles(meta.modules);
     for (auto &cycle : circularDeps) {
-        errorAcc << moduleError(
+        errorAcc << meta.moduleError(
                 cycle.first, "Circular dependency with module '" + meta.modules.at(cycle.second).name + "'.");
         nErrors++;
     }
@@ -83,11 +136,11 @@ std::pair<bool, std::string> Kernel::resolve() {
                     producers.push_back(point.module);
                 }
                 if (producers.empty()) {
-                    errorAcc << channelError(chan.id, "Message has no producer.");
+                    errorAcc << meta.channelError(chan.id, "Message has no producer.");
                     nErrors++;
                 }
                 if (producers.size() >= 2) {
-                    errorAcc << channelError(chan.id, "Message has more than one producer.");
+                    errorAcc << meta.channelError(chan.id, "Message has more than one producer.");
                     nErrors++;
                 }
                 break;
@@ -102,11 +155,11 @@ std::pair<bool, std::string> Kernel::resolve() {
                     handlers.push_back(point.module);
                 }
                 if (handlers.empty()) {
-                    errorAcc << channelError(chan.id, "Commands have no handler.");
+                    errorAcc << meta.channelError(chan.id, "Commands have no handler.");
                     nErrors++;
                 }
                 if (handlers.size() >= 2) {
-                    errorAcc << channelError(chan.id, "Commands have multiple handlers.");
+                    errorAcc << meta.channelError(chan.id, "Commands have multiple handlers.");
                     nErrors++;
                 }
                 break;
@@ -124,7 +177,7 @@ std::pair<bool, std::string> Kernel::resolve() {
 }
 
 void Kernel::run(ModuleId id) {
-    jsassert(isModule(id));
+    jsassert(not tag_set(meta.modules[id].tags, ModuleTag::NoThread));
     modules[id]->process();
 }
 
@@ -142,13 +195,14 @@ void Kernel::step(ModuleId id) {
 
 void Kernel::setup() {
     jsassert(state == State::READY);
-    for(auto loader : loaders) {
-        loader->setup();
-    }
     
+    auto &logdata = context.get<LogDataContext>();
+    logdata.meta = &meta;
+
     for (ModuleId m = 0; m < modules.size(); m++) {
-        if (isModule(m)) {
-            modules[m]->setup();
+        LinkContext &module = linkContexts.at(m);
+        if (module.setup) {
+            module.setup();
         }
     }
 
@@ -168,22 +222,50 @@ void Kernel::start() {
     state = State::RUNNING_ASYNC;
 
     for (ModuleId m = 0; m < modules.size(); m++) {
-        if (isModule(m)) {
+        if(not isModule(m)) {
+            continue;
+        }
+        if (not tag_set(meta.modules[m].tags, ModuleTag::NoThread)) {
             CreateModuleThread(this, m, -1);
         }
     }
 }
 
 void Kernel::stop() {
-    initiateShutdown();
+    jsassert(state == State::RUNNING_ASYNC);
+
+    state = State::SHUTDOWN;
+
+    for (ModuleId m = 0; m < modules.size(); m++) {
+        onReady[m].notify_one();
+    }
+
+    std::unique_lock lock(mtx);
+    moduleStopped.wait_for(lock, 2s, [&]() {
+        return numRunning.load() == 0;
+    });
+    
+    for (ModuleId m = 0; m < modules.size(); m++) {
+        if(not isModule(m)) {
+            continue;
+        }
+        if (tag_set(meta.modules[m].tags, ModuleTag::NoThread)) {
+            modules[m]->stop();
+        }
+    }
+
     state = State::FINISHED;
+
     LOG_DEBUG << "kernel stopped";
 }
 
 void Kernel::moduleLoop(ThreadContext* context, ModuleId moduleId, int runs = -1) {
     jsassert(isModule(moduleId));
+    jsassert(not tag_set(meta.modules[moduleId].tags, ModuleTag::NoThread));
     context->notifyReady();
     numRunning.fetch_add(1);
+
+    set_current_thread_name(meta.modules[moduleId].name.c_str());
 
     for (int it = 0; it < runs || runs < 0; it++) {
         fetch(moduleId);
@@ -227,110 +309,21 @@ void Kernel::dump(ModuleId id) {
     }
 }
 
-void Kernel::initiateShutdown() {
-    jsassert(state == State::RUNNING_ASYNC);
-    state = State::SHUTDOWN;
-    for (ModuleId m = 0; m < modules.size(); m++) {
-        onReady[m].notify_one();
-    }
-
-    {
-        std::unique_lock lock(mtx);
-        moduleStopped.wait_for(lock, 2s, [&]() {
-            return numRunning.load() == 0;
-        });
-    }
-
-    for(auto loader : loaders) {
-        loader->stop();
-    }
-}
-
-std::vector<std::shared_ptr<BlackboardBase>> Kernel::blackboards() {
-    std::vector<std::shared_ptr<BlackboardBase>> bbs{};
-    for (ModuleId m = 0; m < modules.size(); m++) {
-        bbs.insert(bbs.end(), meta.modules[m].blackboards.begin(), meta.modules[m].blackboards.end());
-    }
-    return bbs;
-}
-
 std::string Kernel::printModules() const {
     std::stringstream ss{};
 
     for (auto &module : meta.modules) {
-        if (isModule(module.id)) {
-            ss << "MODULE";
-        } else {
+        if(tag_set(module.tags, ModuleTag::Hook)) {
             ss << "HOOK";
+        } else if(tag_set(module.tags, ModuleTag::Logger)) {
+            ss << "LOGGER";
+        } else if(tag_set(module.tags, ModuleTag::Normal)) {
+            ss << "MODULE";
+        } else if(tag_set(module.tags, ModuleTag::NoThread)) {
+            ss << "NT MODULE";
         }
 
-        ss << " " << module.name << " [id = " << module.id << "]" << std::endl;
-
-        for (EndpointId endpointId : module.endpoints) {
-            const EndpointMeta &endpoint = meta.endpoints.at(endpointId);
-            const ChannelMeta &chan = meta.channels.at(endpoint.channel);
-
-            ss << "  ";
-
-            switch (chan.kind) {
-                case ChannelMeta::Type::COMMAND:
-                    if (endpoint.kind == EndpointMeta::Direction::IN) {
-                        ss << "HANDLES";
-                    } else {
-                        ss << "ISSUES";
-                    }
-                    ss << " " << prettyTypeName(chan.dataType);
-
-                    if (endpoint.kind == EndpointMeta::Direction::OUT) {
-                        ss << " -> " << meta.modules.at(meta.endpoints.at(meta.firstIn(chan.id)).module).name;
-                    }
-                    break;
-
-                case ChannelMeta::Type::CONTEXT:
-                    if (endpoint.kind == EndpointMeta::Direction::IN) {
-                        ss << "READS CONTEXT";
-                    } else {
-                        ss << "WRITES CONTEXT";
-                    }
-                    ss << " " << prettyTypeName(chan.dataType);
-
-                    if (endpoint.kind == EndpointMeta::Direction::IN) {
-                        ss << " <- " << meta.modules.at(meta.endpoints.at(meta.firstOut(chan.id)).module).name;
-                    }
-                    break;
-
-                case ChannelMeta::Type::BLOB:
-                case ChannelMeta::Type::MESSAGE:
-                    if (endpoint.kind == EndpointMeta::Direction::IN) {
-                        if (endpoint.required) {
-                            ss << "REQUIRES";
-                        } else {
-                            ss << "LISTENS";
-                        }
-                    }
-                    else {
-                        ss << "PROVIDES";
-                    }
-                    ss << " " << prettyTypeName(chan.dataType);
-
-                    if (endpoint.kind == EndpointMeta::Direction::IN) {
-                        ss << " <- " << meta.modules.at(meta.endpoints.at(meta.firstOut(chan.id)).module).name;
-                    }
-                    break;
-            }
-
-            ss << std::endl;
-        }
-
-        for (auto bb : module.blackboards) {
-            ss << "  "
-               << "BLACKBOARD " << bb->getBlackboardName() << std::endl;
-        }
-
-        for (auto r : module.requiredBy) {
-            ss << "  "
-               << "REQUIRED BY " << this->meta.modules[r].name << std::endl;
-        }
+        ss << " " << meta.printModule(module);
     }
 
     return ss.str();

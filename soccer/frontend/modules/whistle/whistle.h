@@ -19,7 +19,7 @@ private:
     std::shared_ptr<AlsaRecorder> recorder;
 
     rt::Context<SettingsBlackboard> settings;
-    rt::Dispatch<WhistleCommand, rt::Handle> cmds;
+    rt::Command<WhistleCommand, rt::Handle> cmds;
     rt::Output<WhistleResult, rt::Event> event;
 
     void onRecordOnly(WhistleRecordOnly &);

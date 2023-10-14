@@ -38,7 +38,8 @@ BehaviorBlackboard::BehaviorBlackboard()
     INIT_VAR_RW(whistle, false, "true if whistle has been detected in set state");
     INIT_VAR(whistle_listen, false, "start/stop whistle processing");
     INIT_VAR(has_kickoff, false, "true -> we have kickoff");
-    INIT_ENUM(game_team, TeamColor::BLUE, "our team color");
+    INIT_ENUM(game_player_color, TeamColor::GRAY, "our player jersey color");
+    INIT_ENUM(game_goalie_color, TeamColor::RED, "our goalie jersey color");
     INIT_VAR(game_phase_penalty_shootout, false,
              "true -> game is in penalty shootout phase");
     INIT_VAR(is_unstiff, false, "true if robot is unstiffed");

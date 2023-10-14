@@ -8,6 +8,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include "thread/util.h"
 #include "xlogger.h"
 #include "backends.h"
 
@@ -233,6 +234,7 @@ void XLogger::log_msg(LogMessage *lm) {
 void XLogger::io_worker(ThreadContext* context) {
     io->stop = false;
     context->notifyReady();
+    set_current_thread_name("IO Worker");
 
     while (!io->stop.load()) {
         if (consume() < 1) {

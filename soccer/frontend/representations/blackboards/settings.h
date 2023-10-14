@@ -18,22 +18,21 @@ public:
     bool writeConfig(ConfigFiles &) override;
     void logSettings();
 
-    std::string_view nameToStr(const RobotName &n) const;
-    std::string_view roleToStr(const RobotRole &r) const;
+    std::string nameToStr(const RobotName &n) const;
+    std::string roleToStr(const RobotRole &r) const;
 
     void check_simulation();
 
     MAKE_VAR(std::string, logPath);
-    std::string imagePath;
     std::string configPath;
     std::string motionsPath;
 
     MAKE_VAR(bool, simulator);
     MAKE_VAR(bool, docker);
     MAKE_VAR(bool, isPenaltyShootout);
-    MAKE_VAR(bool, storeRawImages);
-    MAKE_VAR(int, storeImgInterval);
     MAKE_VAR(bool, logToFile);
+    MAKE_VAR(bool, logImages);
+    MAKE_VAR(int,  logImagesInterval);
     MAKE_VAR(FieldSize, fieldSize);
     MAKE_VAR(int, id);
     MAKE_VAR(int, teamNumber);

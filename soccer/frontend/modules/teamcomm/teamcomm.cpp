@@ -1,35 +1,21 @@
-#include "teamcomm.h"
+#include <memory>
 #include <string>
 #include <cstring>
 #include <algorithm>
+
+#include <flatbuffers/verifier.h>
+
+#include "teamcomm.h"
+#include "botnames_generated.h"
+#include "roles_generated.h"
+#include "team_message_generated.h"
 
 #include <framework/logger/logger.h>
 #include <framework/util/assert.h>
 #include <framework/thread/util.h>
 
-static constexpr uint32_t BB_MAGIC = 0xBADC0DE;
-
-static void coord2array(float a[2], const Coord &c) {
-    a[0] = c.x * 1000;
-    a[1] = c.y * 1000;
-}
-
-static Coord array2coord(const float a[2]) {
-    return {a[0] / 1000.0f, a[1] / 1000.0f};
-}
-
-TeamComm::TeamComm() :
-    seq(),
-    ack() {
-    int i = 0;
-    for (auto &m: msg) {
-        m.playerNum = ++i;
-    }
-}
-
-TeamComm::~TeamComm() {
-
-}
+static constexpr uint8_t SPL_MSG_LIMIT{128};
+static constexpr uint8_t MAX_OBSTACLES{8};
 
 void TeamComm::connect(rt::Linker &link) {
     link.name = "TeamComm";
@@ -45,9 +31,12 @@ void TeamComm::connect(rt::Linker &link) {
 
 void TeamComm::setup() {
     net = std::make_shared<UDP>(Network::SPL_MSG, &TeamComm::netRecv, this, settings->teamNumber);
+    cmds.connect<TeamcommDebugInfo, &TeamComm::handle>(this);
 }
 
 void TeamComm::process() {
+    cmds.update();
+
     // do not broadcast anything during penalty shootouts, in accordance with SPL rules
     if (!settings->isPenaltyShootout) {
         broadcast((*world)->myRobotPoseWcs, (*world)->myBallPoseRcs);
@@ -56,34 +45,19 @@ void TeamComm::process() {
 }
 
 void TeamComm::broadcast(const Robot &r, const Ball &b) {
-    //static BlackboardIO &bbio{*tafel().getBlackboardIO()};
+    flatbuffers::FlatBufferBuilder builder;
+    auto packed = bbapi::TeamMessage::Pack(builder, &tm);
 
-    // construct SPL message
-    SPLStandardMessage spl;
-
-    // fill in the standard SPL data
-    spl.playerNum = settings->id + 1;
-    spl.teamNum = settings->teamNumber;
-
-    spl.fallen = (r.fallen > 0);
-    coord2array(spl.pose, r.pos.coord);
-    spl.pose[2] = r.pos.angle.rad();
-
-    spl.ballAge = b.age() / 1000.0f;
-    coord2array(spl.ball, b.pos);
-
-    spl.numOfDataBytes = 0;
-
+    builder.FinishSizePrefixed(packed);
     TimestampMs now = getTimestampMs();
     
     // send teamcomm updates every 2s to last seen bembelDbug
     static TimestampMs lastDebug = 0;
-    auto debug_ep = debugState->debug_ep;
-    debug_ep.port(10000+settings->teamNumber);
+    using namespace boost::asio::ip;
+    auto debug_ep = udp::endpoint(address::from_string("10.0.3.1"), 10000+settings->teamNumber);
 
-    // ignore address 0.0.0.0
-    if (debug_ep.address() != boost::asio::ip::address_v4() && (now - lastDebug) > 2100) {
-        net->sendTo(reinterpret_cast<char *>(&spl), sizeof(spl), debug_ep);
+    if ((now - lastDebug) > 2100) {
+        net->sendTo(reinterpret_cast<char *>(builder.GetBufferPointer()), builder.GetSize(), debug_ep);
         lastDebug = now;
     }
 
@@ -103,51 +77,42 @@ void TeamComm::broadcast(const Robot &r, const Ball &b) {
         return;
     }
 
-    net->bcast(reinterpret_cast<char *>(&spl), sizeof(spl), Network::SPL_MSG);
+    if (builder.GetSize() > SPL_MSG_LIMIT) {
+        LOG_ERROR << "TeamComm: TeamMessage exceed allowed message size (size=" << builder.GetSize() << ", limit=" << SPL_MSG_LIMIT << "), not sending packet!" ;
+        return;
+    }
+    net->bcast(reinterpret_cast<char *>(builder.GetBufferPointer()), builder.GetSize(), Network::SPL_MSG);
     ++msgCount;
+}
+
+void TeamComm::handle(TeamcommDebugInfo &reactivewalk) {
+    debug = reactivewalk;
 }
 
 void TeamComm::netRecv(const char *data, const size_t &bytes_recvd,
                        const udp::endpoint &sender) {
-    const SPLStandardMessage &spl = reinterpret_cast<const SPLStandardMessage &>
-                                    (*data);
-    int senderID = spl.playerNum - 1;
+    bbapi::TeamMessageT msg;
+    flatbuffers::Verifier v(reinterpret_cast<const unsigned char*>(data), bytes_recvd);
+    if (!bbapi::VerifySizePrefixedTeamMessageBuffer(v)) {
+        LOG_ERROR << "TeamComm: received invalid flatbuffer data from " << sender;
+        return;
+    }
+    bbapi::GetSizePrefixedTeamMessage(data)->UnPackTo(&msg);
 
-    // sanity checks
-    if (bytes_recvd < sizeof(struct SPLStandardMessage)) // invalid size
-        return;
-    if (std::string(spl.header,
-                    4) != SPL_STANDARD_MESSAGE_STRUCT_HEADER) // wrong header
-        return;
-    if (spl.version != SPL_STANDARD_MESSAGE_STRUCT_VERSION) // wrong version
-        return;
-    if (spl.teamNum != settings->teamNumber) // wrong team
-        return;
-    if (senderID == settings->id) // own broadcasts
-        return;
-    if ((senderID < 0) || (senderID >= numPlayers)) // invalid player number
+    int senderID{0};
+
+    if (senderID == settings->id)
         return;
 
-    auto robot = spl2robot(spl);
-    
-    Ball ball_rcs;
-    ball_rcs.id = spl.playerNum - 1;
-    ball_rcs.pos = array2coord(spl.ball);
-    if (spl.ballAge >= 0) {
-        int age = getTimestampMs() - msgTimestamp[ball_rcs.id] + (spl.ballAge * 1000.0f);
-        // fake confidences
-        ball_rcs.posConfidence = std::max(0.0f, 1.0f - (age / 10000.0f));   // 0 after 10s
-        ball_rcs.motionConfidence = std::max(0.0f, 1.0f - (age / 1000.0f)); // 0 after 1s
-        ball_rcs.timestamp = getTimestampMs() - age;
-    } else {
-        ball_rcs.posConfidence = ball_rcs.motionConfidence = 0;
-        ball_rcs.timestamp = INT_MIN;
+    if ((senderID < 0) || (senderID >= numPlayers)) {
+        LOG_WARN << "TeamComm: received packet from invalid id " << senderID << " from " << sender;
+        return;
     }
 
-    team_message.emit(TeamMessage {
-                        .robot = robot,
-                        .ball = ball_rcs,
-                        .timestamp = msgTimestamp[senderID]
+    msgTimestamp[senderID] = getTimestampMs();
+    ++msgCount;
+
+    team_message.emit({
                     });
 }
 
@@ -162,30 +127,8 @@ bool TeamComm::isActive(const int &id) {
         return false;
     }
 
-    std::lock_guard<std::recursive_mutex> lock(mtx);
-
     // received ack within the last ~20s
     return msgTimestamp[id] > (getTimestampMs() - 20000);
-}
-
-Robot TeamComm::spl2robot(const SPLStandardMessage &spl) {
-    Robot r;
-    r.id = spl.playerNum - 1;
-    r.fallen = spl.fallen;
-    r.active = isActive(r.id) && ((*gc_message)->penalties[r.id] == Penalty::NONE);
-
-    r.timestamp = getTimestampMs() - msgTimestamp[r.id];
-    r.pos.coord = array2coord(spl.pose);
-    r.pos.angle = Rad{spl.pose[2]};
-
-    if (r.active)
-        // FIXME: send confidence in BembelMessage
-        r.confidence = 1.0f;
-    else
-        // inactive robots get 0 confidence
-        r.confidence = 0.0f;
-
-    return r;
 }
 
 float TeamComm::calcInterval(const Robot &r, const Ball &b) {

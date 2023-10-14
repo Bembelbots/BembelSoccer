@@ -11,9 +11,9 @@ BodyInterface::BodyInterface()
     INIT_VAR(mcs, DirectedCoord(), "");
     INIT_SWITCH(resetMcs, false, "");
 
-    INIT_VAR(accel, Eigen::Vector3f(), "accelerometer (X,Y,Z)");
-    INIT_VAR(gyro, Eigen::Vector3f(), "gyroscope (X,Y,Z)");
-    INIT_VAR(bodyAngles, Eigen::Vector3f(), "torso angles (X,Y,Z / roll, pitch, yaw)");
+    INIT_VAR(accel, Eigen::Vector3f(0,0,0), "accelerometer (X,Y,Z)");
+    INIT_VAR(gyro, Eigen::Vector3f(0,0,0), "gyroscope (X,Y,Z)");
+    INIT_VAR(bodyAngles, Eigen::Vector3f(0,0,0), "torso angles (X,Y,Z / roll, pitch, yaw)");
 
     INIT_VAR(fallenSide, "", "");
 

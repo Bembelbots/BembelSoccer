@@ -47,12 +47,12 @@ public:
     /**
      * Draw number for each players ready position
      */
-    void drawReadyPositions(const bool &seven = false);
+    void drawReadyPositions();
 
     /**
      * Draw number for each players initial setup position
      */
-    void drawInitialPositions(const bool &seven = false);
+    void drawInitialPositions();
     void drawChallengePositions();
 
 private:

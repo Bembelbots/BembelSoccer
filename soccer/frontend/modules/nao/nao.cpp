@@ -21,24 +21,22 @@ struct NaoModules {
     void load(rt::Kernel &soccer) {
         soccer.hook("NaoModule", [&](rt::Linker &link) {
             link(settings);
+        }, [&](){
+            xlogsay = std::make_unique<XLogger>(LOGSAYID);
+            xlog_naosay = new NaoSayBackend(LOGSAYID, settings->instance, settings->simulator);
+            xlogsay->add_backend(xlog_naosay, "%%MSG%%", false);
         });
-        xlogsay = std::make_unique<XLogger>(LOGSAYID);
-        xlog_naosay = new NaoSayBackend(LOGSAYID, settings->instance, settings->simulator);
-        xlogsay->add_backend(xlog_naosay, "%%MSG%%", false);
         soccer.load(nao.get());
         soccer.load(image.get());
     }
 };
 
 Nao::Nao() {
-    modules = new NaoModules();
+    modules = std::make_shared<NaoModules>();
 }
 
-Nao::~Nao() {
-    if(modules != nullptr) {
-        delete modules;
-        modules = nullptr;
-    }
+void Nao::connect(rt::Linker &link) {
+    link.name = "Nao";
 }
 
 void Nao::load(rt::Kernel &soccer) {

@@ -53,7 +53,7 @@ class SubModule {
 public:
     struct Setup {
         const SettingsBlackboard *settings;
-        rt::Dispatch<BodyCommand, rt::Handle> *cmds;
+        rt::Command<BodyCommand, rt::Handle> *cmds;
     };
 
     bool activateMe = false;

@@ -34,15 +34,8 @@ Feature::Feature(const int type, const float dist, const float angle,
 ParticleFilter::Settings::Settings(const PlayingField *pf)
   : pf(pf)
   , numParticles(100)
-  ,
-#if V6
-  odoStdev(DirectedCoord(0.001f, 0.001f, 0.001_rad))
-  ,
-#else
-  odoStdev(DirectedCoord(0.001f, 0.001f, 0.001_rad))
-  ,
-#endif
-  robot_id(1)
+  , odoStdev(DirectedCoord(0.001f, 0.001f, 0.001_rad))
+  , robot_id(1)
   , has_kickoff(1)
   , role(RobotRole::STRIKER) {}
 

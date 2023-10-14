@@ -8,7 +8,7 @@
 #include <chrono>
 
 #include <framework/util/assert.h>
-#include <framework/logger//logger.h>
+#include <framework/logger/logger.h>
 #include <framework/util/getenv.h>
 #include <framework/network/network.h>
 

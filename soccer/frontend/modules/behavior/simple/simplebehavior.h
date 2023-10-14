@@ -13,8 +13,8 @@ public:
     void stop() override;
 private:
     rt::Context<SettingsBlackboard> settings;
-    rt::Dispatch<WhistleCommand> whistle;
-    rt::Dispatch<BodyCommand> motion;
+    rt::Command<WhistleCommand> whistle;
+    rt::Command<BodyCommand> motion;
     rt::Input<WhistleResult, rt::Snoop> whistle_result;
     bool once = false;
 };

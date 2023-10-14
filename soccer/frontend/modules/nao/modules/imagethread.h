@@ -26,13 +26,13 @@ public:
 private:
 /*
     // TODO: get set camera parameter via commands
-    rt::Dispatch<DoCameraParameter, rt::Handle> cmds;
+    rt::Command<DoCameraParameter, rt::Handle> cmds;
 */
     rt::Context<SettingsBlackboard> settings;
     rt::Input<NaoState, rt::Snoop> nao_states;
     rt::Context<NaoInfo> nao_info;
     rt::Context<ImageProvider, rt::Write> image_provider;
-    rt::Dispatch<NaoCommand, rt::Handle> cmds;
+    rt::Command<NaoCommand, rt::Handle> cmds;
 
     std::shared_ptr<NaoCameras> cameras;
 

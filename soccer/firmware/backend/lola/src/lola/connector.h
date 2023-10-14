@@ -21,7 +21,8 @@ public:
     void connect();
 
     // worker, loops until stop() is called
-    void run();
+    // @return: true if system shutdown was requested
+    bool run();
 
     // signal worker to stop
     void stop();

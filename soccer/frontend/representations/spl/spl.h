@@ -3,7 +3,7 @@
 
 // if these version numbers change, this file may need to be updated as well,
 // so these static_asserts ensure we don't forget ;)
-static_assert(GAMECONTROLLER_STRUCT_VERSION == 14, "GAMECONTROLLER_STRUCT_VERSION has been changed.");
+static_assert(GAMECONTROLLER_STRUCT_VERSION == 15, "GAMECONTROLLER_STRUCT_VERSION has been changed.");
 static_assert(GAMECONTROLLER_RETURN_STRUCT_VERSION == 4, "GAMECONTROLLER_RETURN_STRUCT_VERSION has been changed.");
 
 // SPL-team colors
@@ -40,8 +40,6 @@ enum class GamePhase {
 // SPL competition types
 enum class CompetitionType {
     NORMAL = COMPETITION_TYPE_NORMAL,
-    CHALLENGE_SHIELD = COMPETITION_TYPE_CHALLENGE_SHIELD,
-    C7V7 = COMPETITION_TYPE_7V7,
     DYNAMIC_BALL_HANDLING = COMPETITION_TYPE_DYNAMIC_BALL_HANDLING
 };
 
@@ -73,6 +71,7 @@ enum class Penalty {
     REQUEST_FOR_PICKUP = PENALTY_SPL_REQUEST_FOR_PICKUP,
     LOCAL_GAME_STUCK = PENALTY_SPL_LOCAL_GAME_STUCK,
     ILLEGAL_POSITION_IN_SET = PENALTY_SPL_ILLEGAL_POSITION_IN_SET,
+    PLAYER_STANCE = PENALTY_SPL_PLAYER_STANCE,
     SUBSTITUTE = PENALTY_SUBSTITUTE,
     MANUAL = PENALTY_MANUAL
 };

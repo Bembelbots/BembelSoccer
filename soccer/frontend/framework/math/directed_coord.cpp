@@ -134,6 +134,10 @@ DirectedCoord &DirectedCoord::operator+=(const DirectedCoord &other) {
     return *this;
 }
 
+bool DirectedCoord::operator==(const DirectedCoord &other) const {
+    return coord == other.coord && angle == other.angle;
+}
+
 bool DirectedCoord::isNull() const {
     return coord.x == 0 && coord.y == 0 && angle.rad() == 0;
 }

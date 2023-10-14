@@ -4,10 +4,7 @@
 #include <vector>
 #include <algorithm>
 
-#if V6
 #include <opencv2/imgcodecs.hpp>
-#endif
-
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <framework/logger/logger.h>

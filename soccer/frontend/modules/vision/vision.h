@@ -27,7 +27,7 @@ private:
     rt::Output<VisionImageProcessed, rt::Event> processed;
     rt::Output<VisionResultVec> vision_results;
 
-    rt::Dispatch<NaoCommand> nao;
+    rt::Command<NaoCommand> nao;
 
     VisionBlackboard board;
     float center_circle_radius;

@@ -1,0 +1,30 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "v6",
+            "displayName": "NaoV6",
+            "description": "",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "framework",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "v6",
+            "targets": [ "framework", "all" ]
+        },
+        {
+            "name": "custom",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "v6"
+        }
+    ]
+}

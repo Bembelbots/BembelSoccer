@@ -1,0 +1,25 @@
+{
+    "search.exclude": {
+        "**/.ccache": true,
+        "**/build": true
+    },
+    "C_Cpp.autoAddFileAssociations": false,
+    "cmake.useCMakePresets": "always",
+    "cmake.statusbar.advanced": {
+        "build": {
+            "visibility": "hidden"
+        },
+        "ctest": {
+            "visibility": "hidden"
+        },
+        "testPreset": {
+            "visibility": "hidden"
+        },
+        "debug": {
+            "visibility": "hidden"
+        },
+        "launch": {
+            "visibility": "hidden"
+        }
+    }
+}

@@ -4,6 +4,7 @@
 #include "system.h"
 #include "config.h"
 #include "network/debugserver.h"
+#include "logfile/logfile.h"
 
 #include <representations/blackboards/settings.h>
 #include <representations/bembelbots/nao_info.h>
@@ -11,20 +12,12 @@
 #include <modules/robocup.h>
 
 struct Application : public Engine {
-    int run(int use_instance, bool docker, System *system) {
-        rt::Kernel soccer;
+    rt::Context<SettingsBlackboard, rt::Write> settings;
+    rt::Context<NaoInfo, rt::Write> nao;
+    rt::Context<PlayingField, rt::Write> playingfield;
+    rt::Context<Config, rt::Write> config;
 
-        rt::Context<SettingsBlackboard, rt::Write> settings;
-        rt::Context<NaoInfo, rt::Write> nao;
-        rt::Context<Config, rt::Write> config;
-
-        soccer.hook("App", [&](rt::Linker &link) {
-            link(settings);
-            link(nao);
-            link(config);
-        });
-        soccer.load(config);
-        
+    bool setup(int use_instance, bool docker) {
         settings->instance = use_instance;
         settings->docker = docker;
         settings->check_simulation();
@@ -34,12 +27,12 @@ struct Application : public Engine {
 
         if(naoInfoResult.error == NaoInfoReaderError::BACKEND_CONNECT_ERROR) {
             LOG_ERROR << "unable to connect to backend";
-            return EXIT_FAILURE;
+            return false;
         }
 
         if(naoInfoResult.error == NaoInfoReaderError::BACKEND_READ_ERROR) {
             LOG_ERROR << "unable to read nao info from shared memory";
-            return EXIT_FAILURE;
+            return false;
         }
 
         *nao = naoInfoResult.naoInfo;
@@ -50,7 +43,7 @@ struct Application : public Engine {
             char *test = getenv("AL_DIR");
             if (!test) {
                 LOG_ERROR << "AL_DIR not set";
-                exit(EXIT_FAILURE);
+                return false;
             }
             baseDir = test;
             useSimulatorClock(); // set clock to fake time
@@ -64,24 +57,46 @@ struct Application : public Engine {
 
         if (settings->configPath.empty()) {
             LOG_ERROR << "No path to config file!";
-            return EXIT_FAILURE;
+            return false;
         }
+
+        return true;
+    }
+
+    int run(int use_instance, bool docker, System *system) {
+        rt::Kernel soccer;
 
         DebugServer network;
         RoboCup robocup;
+        LogFile logfile;
+
+        soccer.hook("App", [&](rt::Linker &link) {
+            link(settings);
+            link(nao);
+            link(playingfield);
+            link(config);
+        });
         
+        soccer.loadLogger(&logfile);
+
         soccer.load(&robocup);
         soccer.load(&network);
 
-        auto [modulesOk, modulesErrorMsg] = soccer.resolve();
+        auto [modulesOk, modulesErrorMsg] = soccer.compile();
         if (not modulesOk) {
             LOG_ERROR << modulesErrorMsg;
             return EXIT_FAILURE;
         }
-        
-        config->loadBaseSettings();
+
+        LOG_DEBUG << std::endl << soccer.printModules();
+
+        if(not setup(use_instance, docker)) {
+            return EXIT_FAILURE;
+        }
+       
+        config->loadBaseSettings(nao, settings, playingfield);
         soccer.setup();
-        config->loadBlackboardSettings();
+        config->loadBlackboardSettings(settings);
         soccer.start();
 
         const std::chrono::milliseconds waitTime{30};

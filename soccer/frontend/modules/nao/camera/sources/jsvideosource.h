@@ -112,27 +112,4 @@ private:
     int _controlId{-1}, _min{-1}, _max{-1};
 };
 
-class JsVideoSourceV4LDataProxy;
-class JsVideoSourceV4L: public JsVideoSource {
-public:
-    explicit JsVideoSourceV4L(const int &camera);
-
-    JsVideoSourceV4L(const JsVideoSourceV4L&) = delete;
-    JsVideoSourceV4L& operator=(const JsVideoSourceV4L&) = delete;
-
-    ~JsVideoSourceV4L();
-    void fetchImage(CamImage &dst) override;
-    bool startCapturing() override;
-    int getParameter(CameraOption option) override;
-    void setParameter(CameraOption option, const int value) override;
-    int getCamera() const override;
-    void setCamera(const int camera) override;
-    int getCameraResolution() const override;
-    bool setCameraResolution(const int res) override;
-
-private:
-    JsVideoSourceV4LDataProxy *_data;
-    std::array<CameraParameter, NUM_CAMERA_OPTIONS> parameters;
-};
-
 // vim: set ts=4 sw=4 sts=4 expandtab:

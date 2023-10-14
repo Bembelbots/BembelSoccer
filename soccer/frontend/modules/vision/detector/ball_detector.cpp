@@ -217,20 +217,11 @@ namespace bbvision {
     */
     int BallDetector2::estimatedBallRadius(int x, int y, CamImage& img) {
         int radius = 0;
-        #if V6
         if(y > 0.1*height){ // fist linear component 
             radius = (int) ((y / (float)height) * 50 + 10); 
         } else{ // second linar component
             radius = (int) ((y / (float)height) * 60 + 12);
         }
-        #else
-        if(y > 0.1*height){ // fist linear component 
-            radius = (int) ((y / (float)height) * 50 + 8); 
-        } else{ // second linar component
-            radius = (int) ((y / (float)height) * 60 + 8);
-        }    
-        #endif
-        
 
         return radius;
     }

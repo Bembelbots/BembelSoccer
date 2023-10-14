@@ -48,15 +48,14 @@ void WorldModel::process() {
 
     for(TeamMessage &message : teamMessage.fetch()) {
         world.allRobots[message.robot.id] = message.robot;
-        world.allBallPoseWcs[message.ball.id] = message.ball;
+        if (message.ball)
+            world.allBallPoseWcs[message.ball->id] = *message.ball;
     } 
 
     updateRobotPose(); 
 
     TimestampMs now = getTimestampMs();
     robot->timestamp = now;
-    //myRole = tafel().bridge->cognitionDynRole->value;
-    //LOG_DATA << "WCS: " << robot;
     
     // set my active state to my penalty mode
     robot->active = ((*gamecontrol)->penalty == Penalty::NONE);
@@ -69,17 +68,18 @@ void WorldModel::process() {
 
     updateTeamBall();
 
-    // debug current position every 10 second
-    if ((now - _lastWmDebugToConsole) > 20000) {
+    // debug current position every 20 second
+    static constexpr int interval{20000};
+    if ((now - _lastWmDebugToConsole) > interval) {
         LOG_INFO << "current Worldmodel debug: ";
         LOG_INFO << "team id " << settings->teamNumber;
 
         for (size_t i = 0; i < NUM_PLAYERS; ++i) {
-            std::stringstream r, b;
-            r << "  #" << i << ": " << world.allRobots[i];
-            LOG_INFO << r.str();
-            b << "  #" << i << ": " << world.allBallPoseWcs[i];
-            LOG_INFO << b.str();
+            if ((getTimestampMs() - world.allRobots[i].timestamp) > 2*interval)
+                continue;
+
+            LOG_DEBUG << "  #" << i << ": " << world.allRobots[i];
+            LOG_DEBUG << "  #" << i << ": " << world.allBallPoseWcs[i];
         }
 
         LOG_INFO << "TeamBall: " << world.teamball;

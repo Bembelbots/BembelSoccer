@@ -1,41 +1,41 @@
-#include <future>
-#include <fstream>
 #include <iostream>
-#include <filesystem>
+#include <mutex>
+#include <string>
 #include <string_view>
+#include <libspeechd.h>
+
 
 /*
- * writes text to fifo /tmp/tts, which is read by mimic
- *
- * I/O happens asynchronously, unless say() is called again
- * before the previous write has finished (which should rarely
- * happen) or object is destroyed immediately
+ *  text-to-speech output using speech-dispatcher
  */
-class TTSFifo {
+class TTSSpeechd {
 public:
-    void say(const std::string txt) {
-        static const std::filesystem::path fifo{"/tmp/tts"};
+    TTSSpeechd(std::string_view client_name, std::string_view connection_name="main") {
+        conn = spd_open(client_name.data(), connection_name.data(), nullptr, SPD_MODE_SINGLE);
+        if (conn)
+            spd_set_language(conn, "en");
+        else
+            std::cerr << __PRETTY_FUNCTION__ << " - failed to connect to speech dispatcher." << std::endl;
+    }
 
-        f = std::async([=]() {
-            if (!std::filesystem::is_fifo(fifo)) {
-                std::cerr << __PRETTY_FUNCTION__ << " - TTS failed: " << fifo << " is not a named pipe" << std::endl;
-                return;
-            }
+    ~TTSSpeechd() {
+        std::scoped_lock l(mtx);
+        if (conn)
+            spd_close(conn);
+    }
 
-            try {
-                // re-open file every time, since flush does not work
-                std::ofstream ofs(fifo);
-                ofs << txt << std::endl;
-                ofs.close();
-            } catch (std::exception &e) {
-                // use cerr since lola backend has no logger
-                std::cerr << __PRETTY_FUNCTION__ << " - TTS failed: " << e.what() << std::endl;
-            }
-        });
+    bool say(const std::string &txt, const SPDPriority &prio=SPD_TEXT) {
+        if (conn) {
+            std::scoped_lock l(mtx);
+            return spd_say(conn, prio, txt.c_str()) > 0;
+        }
+        return true;
     }
 
 private:
-    std::future<void> f;
+    SPDConnection* conn;
+    std::mutex mtx;
 };
+
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

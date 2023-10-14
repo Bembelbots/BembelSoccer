@@ -1,52 +1,56 @@
 #include "config.h"
+
+#include <exception>
+#include <filesystem>
+#include <system_error>
+
 #include <framework/blackboard/blackboard.h>
 #include <framework/blackboard/blackboardregistry.h>
 #include <framework/logger/logger.h>
 #include <framework/util/configparser.h>
 #include <framework/thread/util.h>
+#include <framework/util/clock.h>
 
+namespace fs = std::filesystem;
 static const fs::path USB_DRIVE{"/mnt/usb"};
 static const fs::path FIELD_DIMENSIONS_JSON{"field_dimensions.json"};
 
-std::shared_ptr<ConfigParser> setupCfg(const NaoInfo &nao, std::shared_ptr<ConfigParser> cfg, std::string index,
+void setupCfg(const NaoInfo &nao, std::shared_ptr<ConfigParser> &cfg, std::string index,
                                    const std::string &cfgFileName) {
     if (cfg) {
-        return cfg;
+        return;
     }
+
     LOG_DEBUG << "Use config file: " << cfgFileName;
-    return std::make_shared<ConfigParser>(cfgFileName, index);
+    cfg = std::make_shared<ConfigParser>(cfgFileName, index);
 }
 
-void Config::connect(rt::Linker &link) {
-    link(settings);
-    link(_playingfield);
-    link(nao);
-}
-
-void Config::load(rt::Kernel &soccer) {
-    // do nothing
-}
-
-bool Config::loadBaseSettings() {
+bool Config::loadBaseSettings(NaoInfo &nao, SettingsBlackboard *settings, PlayingField *_playingfield) {
     const fs::path cfg_path = settings->configPath;
     static const fs::path bb_json{"bembelbots.json"};
     static const fs::path cal_json{"calibration.json"};
-    std::string settings_index = nao->getHostname();
+    std::error_code ec;
+    std::string settings_index = nao.getHostname();
     std::string calibration_index = settings_index;
+        
+    settings->name = nao.getNameId();
+
     if(settings->simulator) {
         calibration_index = "simulator";
     }
 
-    if (fs::is_regular_file(USB_DRIVE/bb_json)) {
-        _settingsCfg = setupCfg(nao, _settingsCfg, settings_index, USB_DRIVE / bb_json);
+    bool usb_conf{false}, usb_cal{false};
+
+    if (fs::is_regular_file(USB_DRIVE/bb_json, ec)) {
+        setupCfg(nao, _settingsCfg, settings_index, USB_DRIVE / bb_json);
     } else { 
-        _settingsCfg = setupCfg(nao, _settingsCfg, settings_index, cfg_path / bb_json);
+        setupCfg(nao, _settingsCfg, settings_index, cfg_path / bb_json);
     }
 
-    if (fs::is_regular_file(USB_DRIVE/cal_json)) {
-        _calibrationCfg = setupCfg(nao, _calibrationCfg, calibration_index, USB_DRIVE / cal_json);
+    if (fs::is_regular_file(USB_DRIVE/cal_json, ec)) {
+        setupCfg(nao, _calibrationCfg, calibration_index, USB_DRIVE / cal_json);
     } else {
-        _calibrationCfg = setupCfg(nao, _calibrationCfg, calibration_index, cfg_path / cal_json);
+        setupCfg(nao, _calibrationCfg, calibration_index, cfg_path / cal_json);
     }
     
     cfg = {_settingsCfg.get(), _calibrationCfg.get()};
@@ -54,7 +58,7 @@ bool Config::loadBaseSettings() {
     LOG_DEBUG << "Load config for blackboard: " << settings->getBlackboardName();
     settings->loadConfig(cfg);
 
-    if (fs::is_regular_file(USB_DRIVE / FIELD_DIMENSIONS_JSON)) {
+    if (fs::is_regular_file(USB_DRIVE / FIELD_DIMENSIONS_JSON, ec)) {
         settings->fieldSize = FieldSize::JSON;
         *_playingfield = PlayingField(USB_DRIVE / FIELD_DIMENSIONS_JSON);
     } else {
@@ -62,14 +66,21 @@ bool Config::loadBaseSettings() {
     }
     LOG_INFO << "create Playingfield (" << settings->fieldSize << ")";
 
+    fs::path logPath = settings->logPath;
+    fs::path c = fs::weakly_canonical(logPath, ec);
+    if (!ec && !c.empty())
+        logPath = c;
+    
+    settings->logPath = logPath.string();
+
     LOG_FLUSH();
     return true;
 }
 
-bool Config::loadBlackboardSettings() {
+bool Config::loadBlackboardSettings(SettingsBlackboard &settings) {
     for (auto *bb : BlackboardRegistry::GetBlackboards()) {
         // settings blackboard should have loaded config by now
-        if(bb->getBlackboardName() == settings->getBlackboardName()) {
+        if(bb->getBlackboardName() == settings.getBlackboardName()) {
             continue;
         }
 

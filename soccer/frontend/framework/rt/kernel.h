@@ -3,7 +3,8 @@
 #include "channels.h"
 #include "meta.h"
 #include "module.h"
-#include "static_vector.h"
+#include "util/static_vector.h"
+#include "util/util.h"
 
 #include <condition_variable>
 #include <memory>
@@ -13,6 +14,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <functional>
 
 class ThreadContext;
 class BlackboardBase;
@@ -23,67 +25,32 @@ class Kernel;
 extern void CreateModuleThread(Kernel* kernel, ModuleId m, int runs);
 
 class Kernel {
-
 public:
+    using ConnectFn = std::function<void(Linker&)>;
+    using SetupFn = std::function<void()>;
+    using CompileResult = std::pair<bool, std::string>;
+
     Kernel() = default;
 
-    Kernel(const Kernel &) = delete;
-    Kernel(Kernel &&) = delete;
-    Kernel &operator=(const Kernel &) = delete;
-    Kernel &operator=(Kernel &&) = delete;
+    RT_DISABLE_COPY(Kernel)
 
-    ModuleId load(Module *module) {
-        jsassert(state == State::SETUP);
-        Linker l{context, meta};
-        module->connect(l);
-        ModuleId id = addModule(module, l.finish());
-        module->load(*this);
-        return id;
-    }
-    
-    ModuleId load(ModuleLoader *loader) {
-        jsassert(state == State::SETUP);
-        Linker l{context, meta};
-        l.name = "loader";
-        loader->connect(l);
-        ModuleId id = addModule(nullptr, l.finish());
-        loader->load(*this);
-        loaders.emplace_back(loader);
-        return id;
-    }
+    ModuleId load(ModuleBase *module);
+    ModuleId loadLogger(ModuleBase *module);
 
-    template<class F>
-    ModuleId hook(std::string_view name, F &&connect) {
-        jsassert(state == State::SETUP);
-        Linker l{context, meta};
-        connect(l);
-        l.name = name;
-        ModuleId id = l.finish();
-        return addModule(nullptr, id);
-    }
+    ModuleId hook(std::string_view name, ConnectFn connect, SetupFn setup = {});
 
-    inline bool isReady(ModuleId id) { return meta.modules.at(id).ready(); }
-    void step(ModuleId);
-
-    std::pair<bool, std::string> resolve();
-
+    CompileResult compile();
     void setup();
     void start();
     void stop();
 
-    // Fetch new data from all dependencies of a module.
-    // Will block until all new data is available for required entries.
-    void fetch(ModuleId);
-    void dump(ModuleId);
-
-    inline bool isRunning() const { return state == State::RUNNING_SEQ || state == State::RUNNING_ASYNC; }
+    bool isRunning() const;
 
     std::string printModules() const;
 
-    std::vector<std::shared_ptr<BlackboardBase>> blackboards();
-
 private:
     friend void CreateModuleThread(Kernel* kernel, ModuleId m, int runs);
+
     enum class State {
         SETUP,
         READY,
@@ -94,6 +61,15 @@ private:
         ERROR,
     };
 
+    struct LinkContext {
+        ModuleMeta moduleMeta;
+        ConnectFn connect;
+        SetupFn setup;
+
+        LinkContext(ModuleMeta moduleMeta, ConnectFn connect, SetupFn setup)
+            : moduleMeta(moduleMeta), connect(connect), setup(setup) {}
+    };
+
     std::mutex mtx;
     std::atomic<int> numRunning{0};
     std::condition_variable moduleStopped;
@@ -102,28 +78,36 @@ private:
     ContextPool context;
     Metadata meta;
 
-    std::vector<Module*> modules;
-    std::vector<ModuleLoader*> loaders;
+    bool loggerAttached = false;
+
+    std::vector<ModuleBase*> modules;
+    std::vector<LinkContext> linkContexts;
 
     StaticVector<std::mutex> mutexes;
     StaticVector<std::condition_variable> onReady;
 
     State state = State::SETUP;
 
-    static std::string composeError(std::string_view, std::string_view);
-    std::string channelError(ChannelId, std::string_view) const;
-    std::string moduleError(ModuleId, std::string_view) const;
+    bool isModule(ModuleId) const;
+    bool isReady(ModuleId) const;
 
-    void resolveDependencies();
-    void tryRun(ModuleId);
-    void run(ModuleId);
+    ModuleId load(ModuleBase *, ModuleMeta &moduleMeta);
+    ModuleId addModule(ModuleBase *, LinkContext &&context);
 
     void moduleLoop(ThreadContext*, ModuleId, int);
-    void initiateShutdown();
+    void resolveDependencies();
 
-    ModuleId addModule(Module *, ModuleId);
+    void link();
+    CompileResult resolve();
 
-    inline bool isModule(ModuleId id) const { return modules[id] != nullptr; }
+    // Fetch new data from all dependencies of a module.
+    // Will block until all new data is available for required entries.
+    void fetch(ModuleId);
+    void dump(ModuleId);
+    void tryRun(ModuleId);
+    void run(ModuleId);
+    
+    void step(ModuleId);
 };
 
 } // namespace rt

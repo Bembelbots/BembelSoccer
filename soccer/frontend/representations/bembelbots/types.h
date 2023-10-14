@@ -1,9 +1,13 @@
 #pragma once
 
-#include <framework/util/enum-flags/flags.hpp>
-#include <framework/util/enum/serializable_enum.h>
 #include <cassert>
 #include <vector>
+
+#include <framework/util/enum-flags/flags.hpp>
+#include <framework/util/enum/serializable_enum.h>
+#include <roles_generated.h>
+
+using bbapi::RobotRole;
 
 // type to keep unix stamp in microseconds
 typedef int64_t microTime;
@@ -33,46 +37,6 @@ SERIALIZABLE_ENUM_CLASS(FieldSize,
     (JSON) (255)
 );
 
-
-// Robot role in game
-SERIALIZABLE_ENUM_CLASS(RobotRole,
-    (NONE) (0),
-    (STRIKER),
-    (DEFENDER),
-    (GOALKEEPER),
-    (SUPPORTER_DEFENSE),
-    (SUPPORTER_OFFENSE),
-    (SEARCHER),
-    (DEMO),
-    (PENALTYKICKER),
-    (PENALTYGOALIE),
-    (OBSTACLE_AVOIDER),
-    (PASSING_ROBOT)
-);
-
-
-// Enum for BotId that are named after jersey numbers but keep the internal
-// numbering
-enum class BotId {
-    One = 0,
-    Two = 1,
-    Three = 2,
-    Four = 3,
-    Five = 4,
-};
-
-[[maybe_unused]] inline constexpr int operator*(BotId id) {
-    return static_cast<int>(id);
-}
-
-[[maybe_unused]] inline constexpr BotId fromJersey(int jersey) {
-    assert(1 <= jersey && jersey <= 5);
-    return BotId(jersey-1);
-}
-
-[[maybe_unused]] inline constexpr int toJersey(BotId id) {
-    return *id + 1;
-}
 
 // On which side does the robot lie?
 SERIALIZABLE_ENUM_CLASS(FallenSide,

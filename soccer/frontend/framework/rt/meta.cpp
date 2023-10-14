@@ -1,10 +1,11 @@
 #include "meta.h"
-#include "type_info.h"
+#include "util/util.h"
+
 #include "../util/assert.h"
 
 using namespace rt;
 
-bool ModuleMeta::ready() {
+bool ModuleMeta::ready() const {
     bool ready = true;
     for (auto &f : readyFuncs) {
         ready &= f();
@@ -129,6 +130,31 @@ EndpointId Metadata::firstOut(ChannelId channelId) const {
     return INVALID_ID;
 }
 
+std::string Metadata::channelError(ChannelId id, std::string_view errorMsg) {
+    auto &chan = channels.at(id);
+    std::string messageName = prettyTypeName(chan.dataType);
+
+    std::string messageType = "<<< UNKNOW MESSAGE TYPE >>>";
+    switch (chan.kind) {
+        case ChannelMeta::Type::BLOB:
+        case ChannelMeta::Type::MESSAGE:
+            messageType = "Message";
+            break;
+        case ChannelMeta::Type::COMMAND:
+            messageType = "Commands of type";
+            break;
+        case ChannelMeta::Type::CONTEXT:
+            messageType = "Context";
+            break;
+    }
+
+    return composeError(messageType + " '" + messageName + "'", errorMsg);
+}
+
+std::string Metadata::moduleError(ModuleId id, std::string_view errorMsg) {
+    return composeError("Module '" + modules.at(id).name + "'", errorMsg);
+}
+
 std::string Metadata::dumpGraph() const {
 
     std::stringstream ss{};
@@ -160,6 +186,75 @@ std::string Metadata::dumpGraph() const {
            << "  channel = " << endpoint.channel << std::endl
            << "  required = " << endpoint.required << std::endl
            << std::endl;
+    }
+
+    return ss.str();
+}
+
+std::string Metadata::printModule(const ModuleMeta &module) const {
+    std::stringstream ss{};
+
+    ss << module.name << " [id = " << module.id << "]" << std::endl;
+
+    for (EndpointId endpointId : module.endpoints) {
+        const EndpointMeta &endpoint = endpoints.at(endpointId);
+        const ChannelMeta &chan = channels.at(endpoint.channel);
+
+        ss << "  ";
+
+        switch (chan.kind) {
+            case ChannelMeta::Type::COMMAND:
+                if (endpoint.kind == EndpointMeta::Direction::IN) {
+                    ss << "HANDLES";
+                } else {
+                    ss << "ISSUES";
+                }
+                ss << " " << prettyTypeName(chan.dataType);
+
+                if (endpoint.kind == EndpointMeta::Direction::OUT) {
+                    ss << " -> " << modules.at(endpoints.at(firstIn(chan.id)).module).name;
+                }
+                break;
+
+            case ChannelMeta::Type::CONTEXT:
+                if (endpoint.kind == EndpointMeta::Direction::IN) {
+                    ss << "READS CONTEXT";
+                } else {
+                    ss << "WRITES CONTEXT";
+                }
+                ss << " " << prettyTypeName(chan.dataType);
+
+                if (endpoint.kind == EndpointMeta::Direction::IN) {
+                    ss << " <- " << modules.at(endpoints.at(firstOut(chan.id)).module).name;
+                }
+                break;
+
+            case ChannelMeta::Type::BLOB:
+            case ChannelMeta::Type::MESSAGE:
+                if (endpoint.kind == EndpointMeta::Direction::IN) {
+                    if (endpoint.required) {
+                        ss << "REQUIRES";
+                    } else {
+                        ss << "LISTENS";
+                    }
+                }
+                else {
+                    ss << "PROVIDES";
+                }
+                ss << " " << prettyTypeName(chan.dataType);
+
+                if (endpoint.kind == EndpointMeta::Direction::IN) {
+                    ss << " <- " << modules.at(endpoints.at(firstOut(chan.id)).module).name;
+                }
+                break;
+        }
+
+        ss << std::endl;
+    }
+
+    for (auto r : module.requiredBy) {
+        ss << "  "
+           << "REQUIRED BY " << modules[r].name << std::endl;
     }
 
     return ss.str();

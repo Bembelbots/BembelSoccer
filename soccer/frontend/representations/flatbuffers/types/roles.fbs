@@ -1,0 +1,16 @@
+namespace bbapi;
+
+enum RobotRole : ubyte {
+    NONE = 0,
+    STRIKER,
+    DEFENDER,
+    GOALKEEPER,
+    SUPPORTER_DEFENSE,
+    SUPPORTER_OFFENSE,
+    SEARCHER,
+    DEMO,
+    PENALTYKICKER,
+    PENALTYGOALIE,
+    OBSTACLE_AVOIDER,
+    PASSING_ROBOT
+}

@@ -19,9 +19,9 @@ void BehaviorControl::connect(rt::Linker &link) {
     link(playingField);
     link(whistle);
 
-//    link(dynamicRole);
     link(bodyCmds);
     link(whistleCmds);
+    link(teamcommCmds);
 }
 
 void BehaviorControl::setup() {
@@ -87,7 +87,8 @@ void BehaviorControl::updateBehavior() {
     bh->playingfield = playingField;
 
     // GAME-CONTROLLER (read-only)
-    bh->game_team = gc->teamColor;
+    bh->game_player_color = gc->fieldPlayerColor;
+    bh->game_goalie_color = gc->goalkeeperColor;
     bh->game_state = gc->gameState;
     bh->game_state_led = gc->gameState;
     for (const auto &e: whistle.fetch())
@@ -158,7 +159,6 @@ void BehaviorControl::updateBehavior() {
     RobotRole myRole = RobotRole::NONE;
 
     bh->robots = world->allRobots;
-    //dynamicRole->value = (int)myRole;
 
     bh->bodyqns = body->qns;
 }
@@ -201,6 +201,8 @@ void BehaviorControl::applyMotion() {
     if (bh->stiffnessCmd != StiffnessCommand::NONE) {
         bodyCmds.enqueue<SetStiffness>(bh->stiffnessCmd);
     }
+
+    //LOG_DEBUG_EVERY_N(10) << "Motion set by behavior: " << bh->bm_type;
 
     DirectedCoord walkV{bh->walk_x, bh->walk_y, Rad{bh->walk_theta}};
     switch (bh->bm_type) {
@@ -246,6 +248,11 @@ void BehaviorControl::applyMisc() {
         whistleCmds.enqueue<WhistleStart>();
     else
         whistleCmds.enqueue<WhistleStop>();
+
+    TeamcommDebugInfo tc;
+    tc.role = _myBehavior->role_current;
+    teamcommCmds.enqueue<TeamcommDebugInfo>(tc);
+
     STOP_TIMER;
 }
 

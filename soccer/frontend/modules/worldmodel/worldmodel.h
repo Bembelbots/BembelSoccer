@@ -1,21 +1,21 @@
 #pragma once
-
-#include <array>
-#include <vector>
-#include <representations/vision/visiondefinitions.h>
-//#include <core/util/aging.h>
-#include <representations/bembelbots/constants.h>
-#include <representations/blackboards/settings.h>
-#include <representations/blackboards/worldmodel.h>
-#include <representations/localization/locamessage.h>
-#include <representations/teamcomm/teammessage.h>
-#include <representations/motion/body_state.h>
-#include <representations/blackboards/gamecontrol.h>
-#include <framework/rt/module.h>
 #include "ballmotionfilter.h"
 #include "ballfilter.h"
 #include "teamball.h"
 
+#include <framework/rt/module.h>
+
+#include <representations/vision/visiondefinitions.h>
+#include <representations/bembelbots/constants.h>
+#include <representations/blackboards/settings.h>
+#include <representations/blackboards/worldmodel.h>
+#include <representations/teamcomm/teammessage.h>
+#include <representations/motion/body_state.h>
+#include <representations/blackboards/gamecontrol.h>
+#include <representations/flatbuffers/flatbuffers.h>
+
+#include <array>
+#include <vector>
 /**
  * @section coordsys Coordinate Systems
  * @image html coordsys.png
@@ -63,7 +63,7 @@ private:
     rt::Context<SettingsBlackboard> settings;
     rt::Context<PlayingField> playingfield;
     rt::Input<TeamMessage, rt::Snoop> teamMessage;
-    rt::Input<LocalizationMessage, rt::Require> loca;
+    rt::Input<bbapi::LocalizationMessageT, rt::Require> loca;
     rt::Input<VisionResultVec, rt::Require> visionResults;
     rt::Input<BodyState> body;
     rt::Input<Snapshot<GamecontrolBlackboard>> gamecontrol;

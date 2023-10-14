@@ -3,10 +3,13 @@
 //
 #pragma once
 
-#include <string>
+#include <atomic>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <framework/logger/backends.h>
-#include <libbembelbots/bembelbots_shm.h>
+
+class TTSSpeechd;
 
 class NaoSayBackend : public BaseLoggerBackend {
 public:
@@ -14,7 +17,8 @@ public:
     void write(const std::string &msg);
 
 private:
-    std::unique_ptr<BembelbotsShm> shm{nullptr};
+    std::unique_ptr<TTSSpeechd> tts{nullptr};
+    std::atomic<std::string_view> last_msg;
     int instance;
     bool simulator{false};
     int naoSayTick;

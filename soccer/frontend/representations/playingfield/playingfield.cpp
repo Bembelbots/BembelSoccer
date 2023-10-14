@@ -333,28 +333,25 @@ DirectedCoord PlayingField::getReadyPose(int botId, bool hasKickoff) const {
     jsassert(0 <= botId && botId < NUM_PLAYERS);
     switch (botId) {
         case 0:
-            p.coord = {-_lengthInsideBounds / 2.0f, 0.f};
+            p.coord = {-_lengthInsideBounds / 2.0f + _goalBoxLength/2.f, 0.f};
             break;
         case 1:
-            p.coord = {-_lengthInsideBounds / 2.0f + _penaltyCrossDistance - 0.2f, - _goalWidth /4.f};
+            p.coord = {-_lengthInsideBounds / 2.0f + _penaltyCrossDistance - 0.5f, - _goalWidth /4.f};
             break;
         case 2:
-            p.coord = {-(_lengthInsideBounds / 2.0f) * 0.5f - 0.3f , _goalBoxWidth/ 4.f};
+            p.coord = {-_lengthInsideBounds / 2.0f + _penaltyCrossDistance - 0.5f, _goalBoxWidth/ 4.f};
             break;
         case 3:
-            p.coord = {-(_lengthInsideBounds / 2.0f) * 0.3f, - _goalWidth / 1.7f};
+            p.coord = {-(_lengthInsideBounds / 2.0f) + _penaltyCrossDistance, 0.f};
             break;
         case 4:
-            if (hasKickoff)
-                p.coord = {-_circle.wcs_radius, 0.f};
-            else
-                p.coord = {-_circle.wcs_radius - 0.60f, 0.f};
+            p.coord = {-(_lengthInsideBounds / 2.0f) + _penaltyCrossDistance - 0.2f, _goalWidth/2.f - 0.3f };
             break;
         case 5:
-            p.coord = {-_circle.wcs_radius/2.f, -_widthInsideBounds/4.f};
+            p.coord = {-(_lengthInsideBounds / 2.0f) + _penaltyCrossDistance - 0.2f, - _goalWidth/2.f + 0.3f };
             break;
         case 6:
-            p.coord = {-_circle.wcs_radius/2.f, _widthInsideBounds/4.f};
+            p.coord = {-_circle.wcs_radius/2.f - 0.7f, 0.f};
             break;
     }
     return p;
@@ -398,37 +395,20 @@ std::vector<DirectedCoord> PlayingField::getUnpenalizedPose() const {
 }
 
 // returns initial Positions vektor[x] = Position id x
-std::vector<DirectedCoord> PlayingField::getInitialPose(const int &robot_id, const RobotRole &role, const bool &seven) const {
-    if (role == RobotRole::OBSTACLE_AVOIDER){
-        const float x{_lengthInsideBounds / 2.f};
-        return {{x-5.3f, 0.f}}; // SPL field striker manual placement pose, other fields equivalent distance
-    } else {
-        const float x{-(_lengthInsideBounds / 2.f)};
-        const float y{_widthInsideBounds / 2.f};
-        const Angle a = Rad{M_PI_2_F};
-        static const std::vector<DirectedCoord> defaultPoses {
-            {x * 0.87f,  y, -a},
-            {x * 0.71f, -y,  a},
-            {x * 0.50f,  y, -a},
-            {x * 0.35f, -y,  a},
-            {x * 0.17f,  y, -a},
-            {x * 0.17f, -y,  a}};
+std::vector<DirectedCoord> PlayingField::getInitialPose(const int &robot_id, const RobotRole &role) const {
+    const float x{-(_lengthInsideBounds / 2.f)};
+    const float y{_widthInsideBounds / 2.f};
+    const Angle a = Rad{M_PI_2_F};
+    static const std::vector<DirectedCoord> defaultPoses {
+        {x * 0.87f,  y, -a},
+        {x * 0.71f, -y,  a},
+        {x * 0.63f,  y, -a},
+        {x * 0.48f, -y,  a},
+        {x * 0.40f,  y, -a},
+        {x * 0.24f, -y,  a},
+        {x * 0.17f,  y, -a}};
 
-        if (seven || robot_id > 4) {
-            // poses for 7vs7 challenge
-            static const std::vector<DirectedCoord> defaultPoses7 {
-                {x * 0.87f,  y, -a},
-                {x * 0.71f, -y,  a},
-                {x * 0.63f,  y, -a},
-                {x * 0.48f, -y,  a},
-                {x * 0.40f,  y, -a},
-                {x * 0.24f, -y,  a},
-                {x * 0.17f,  y, -a}};
-
-            return {defaultPoses7.at(robot_id)};
-        }
-        return {defaultPoses.at(robot_id)};
-    }
+    return {defaultPoses.at(robot_id)};
 }
 
 std::vector<DirectedCoord> PlayingField::getObstaclePositionsObstacleChallenge(){

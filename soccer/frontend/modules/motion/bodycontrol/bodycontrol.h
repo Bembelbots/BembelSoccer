@@ -36,7 +36,7 @@ public:
      * 4. cognition data is written to a buffer
      * 5. actuator data is written
      */
-    BodyState step(rt::Dispatch<BodyCommand, rt::Handle> &, BBActuatorData *actuatorData,
+    BodyState step(rt::Command<BodyCommand, rt::Handle> &, BBActuatorData *actuatorData,
             const BBSensorData *sensorData); //!< Do a step
 
     void activateModule(MODULE_ID);

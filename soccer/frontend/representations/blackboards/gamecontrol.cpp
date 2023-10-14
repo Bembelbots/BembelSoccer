@@ -36,7 +36,8 @@ void GamecontrolBlackboard::setup() {
     INIT_VAR_RW(secsTillUnpenalised, 0, "time remaining for penalty");
 
     INIT_VAR_RW(teamNumber, 0, "own team number");
-    INIT_ENUM_RW(teamColor, TeamColor::RED, "own team color");
+    INIT_ENUM_RW(fieldPlayerColor, TeamColor::GRAY, "own field player jersey color");
+    INIT_ENUM_RW(goalkeeperColor, TeamColor::RED, "own goalkeeper jersey color");
     INIT_VAR_RW(score, 0, "own team's score");
     INIT_VAR_RW(penaltyShot, 0, "penalty shot counter");
     INIT_VAR_RW(singleShots, 0, "bits represent penalty shot success");
@@ -48,6 +49,8 @@ void GamecontrolBlackboard::setup() {
 
     INIT_VAR_RW(opponentTeamNumber, 0, "opponent's team number");
     INIT_ENUM_RW(opponentTeamColor, TeamColor::BLUE, "opponent's team color");
+    INIT_ENUM_RW(opponentFieldPlayerColor, TeamColor::BLUE, "opponent's field player jersey color");
+    INIT_ENUM_RW(opponentGoalkeeperColor, TeamColor::WHITE, "opponent's goalkeeper jersey color");
     INIT_VAR_RW(opponentScore, 0, "opponent's score");
     INIT_VAR_RW(opponentPenaltyShot, 0, "opponent's penalty shot counter");
     INIT_VAR_RW(opponentSingleShots, 0,
@@ -59,31 +62,33 @@ void GamecontrolBlackboard::setup() {
 
 std::ostream &operator<<(std::ostream &s, const GamecontrolBlackboard *rhs) {
     s << "current gamecontrol blackboard content:\n";
-    s << "  competitionType:     " << int(rhs->competitionType)     << "\n";
-    s << "  competitionPhase:    " << int(rhs->competitionPhase)    << "\n";
-    s << "  gameState:           " << int(rhs->gameState)           << "\n";
-    s << "  gamePhase:           " << int(rhs->gamePhase)           << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  firstHalf:           " << rhs->firstHalf                << "\n";
-    s << "  kickoff:             " << rhs->kickoff                  << "\n";
-    s << "  secsRemaining:       " << rhs->secsRemaining            << "\n";
-    s << "  secondaryTime:       " << rhs->secondaryTime            << "\n";
-    s << "  penalty:             " << int(rhs->penalty)             << "\n";
-    s << "  secsTillUnpenalised: " << rhs->secsTillUnpenalised      << "\n";
-    s << "  teamNumber:          " << rhs->teamNumber               << "\n";
-    s << "  teamColor:           " << int(rhs->teamColor)           << "\n";
-    s << "  score:               " << rhs->score                    << "\n";
-    s << "  penaltyShot:         " << rhs->penaltyShot              << "\n";
-    s << "  singleShots:         " << rhs->singleShots              << "\n";
-    s << "  opponentTeamNumber:  " << rhs->opponentTeamNumber       << "\n";
-    s << "  opponentTeamColor:   " << int(rhs->opponentTeamColor)   << "\n";
-    s << "  opponentScore:       " << rhs->opponentScore            << "\n";
-    s << "  opponentPenaltyShot: " << rhs->opponentPenaltyShot      << "\n";
-    s << "  opponentSingleShots: " << rhs->opponentSingleShots      << "\n";
+    s << "  competitionType:            " << int(rhs->competitionType)          << "\n";
+    s << "  competitionPhase:           " << int(rhs->competitionPhase)         << "\n";
+    s << "  gameState:                  " << int(rhs->gameState)                << "\n";
+    s << "  gamePhase:                  " << int(rhs->gamePhase)                << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  firstHalf:                  " << rhs->firstHalf                     << "\n";
+    s << "  kickoff:                    " << rhs->kickoff                       << "\n";
+    s << "  secsRemaining:              " << rhs->secsRemaining                 << "\n";
+    s << "  secondaryTime:              " << rhs->secondaryTime                 << "\n";
+    s << "  penalty:                    " << int(rhs->penalty)                  << "\n";
+    s << "  secsTillUnpenalised:        " << rhs->secsTillUnpenalised           << "\n";
+    s << "  teamNumber:                 " << rhs->teamNumber                    << "\n";
+    s << "  fieldPlayerColor:           " << int(rhs->fieldPlayerColor)         << "\n";
+    s << "  goalkeeperColor:            " << int(rhs->goalkeeperColor)          << "\n";
+    s << "  score:                      " << rhs->score                         << "\n";
+    s << "  penaltyShot:                " << rhs->penaltyShot                   << "\n";
+    s << "  singleShots:                " << rhs->singleShots                   << "\n";
+    s << "  opponentTeamNumber:         " << rhs->opponentTeamNumber            << "\n";
+    s << "  opponentFieldPlayerColor:   " << int(rhs->opponentFieldPlayerColor) << "\n";
+    s << "  opponentGoalkeeperColor:    " << int(rhs->opponentGoalkeeperColor)  << "\n";
+    s << "  opponentScore:              " << rhs->opponentScore                 << "\n";
+    s << "  opponentPenaltyShot:        " << rhs->opponentPenaltyShot           << "\n";
+    s << "  opponentSingleShots:        " << rhs->opponentSingleShots           << "\n";
     return s;
 }
 

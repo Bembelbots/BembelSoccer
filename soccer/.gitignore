@@ -1,0 +1,8 @@
+*.bak
+build
+.cmaketools.json
+.clangd
+.cache
+.ccache
+compile_commands.json
+.build.env

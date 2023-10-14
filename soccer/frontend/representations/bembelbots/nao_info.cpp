@@ -62,7 +62,7 @@ NaoInfoResult NaoInfoReader::getNaoInfo(const int &instance, bool docker) {
         std::string name{getEnvVar("ROBOT_NAME")};
         jsassert(!name.empty()) << "set ROBOT_NAME environment variable for docker mode!";
         naoInfo->robotNameStr = name;
-    }else if (naoInfo->robotName == RobotName::SIMULATOR) {
+    } else if (naoInfo->robotName == RobotName::SIMULATOR) {
         if (instance == naoqiBackendPort)
             naoInfo->robotNameStr += "-0";
         else

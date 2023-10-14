@@ -1,0 +1,8 @@
+{
+  "name": "Bembelbots",
+  "dockerComposeFile": "../docker-compose.yaml",
+  "service": "bembelbuild",
+  "workspaceFolder": "/src/soccer",
+  "remoteUser": "nao",
+  "initializeCommand": ["./.devcontainer/setup"]
+}

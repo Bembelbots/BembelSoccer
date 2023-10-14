@@ -42,6 +42,11 @@ public:
      */
     void releaseCaptureBuffer();
 
+    /**
+     * print debug info
+     */
+    void debug();
+
 private:
     /// image size in bytes
     static constexpr size_t imgSize{camera::w * camera::h * camera::bpp};

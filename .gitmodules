@@ -1,12 +1,6 @@
 [submodule "soccer/external/cabsl"]
 	path = soccer/external/cabsl
 	url = https://github.com/bhuman/cabsl
-[submodule "soccer/external/flatbuffers"]
-	path = soccer/external/flatbuffers
-	url = https://github.com/google/flatbuffers
-[submodule "soccer/external/eigen"]
-	path = soccer/external/eigen
-	url = https://gitlab.com/libeigen/eigen.git
 [submodule "soccer/external/entt"]
 	path = soccer/external/entt
 	url = https://github.com/skypjack/entt.git

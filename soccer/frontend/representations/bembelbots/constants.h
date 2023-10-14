@@ -9,7 +9,7 @@
 #define MS_PER_SEC 1000
 #endif
 
-static constexpr unsigned char NUM_PLAYERS = 7;
+static constexpr unsigned char NUM_PLAYERS = 20;
 
 // framework-wide constants
 namespace CONSTANTS {
@@ -17,13 +17,9 @@ namespace CONSTANTS {
 // initial head position yaw/pitch
 static constexpr float initial_yaw = 0.0f;
 
-#if V6
 static constexpr float initial_pitch = 0.475f;
-#else
-static constexpr float initial_pitch = 0.34f;
-#endif
 
-static constexpr int max_ball_age = 2500;
+static constexpr int max_ball_age = 5000;
 
 static constexpr int max_robot_age = 2000;
 

@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  bembelbuild:
+    image: bembelbuild
+    platform: linux/amd64
+    build: .
+    working_dir: /root

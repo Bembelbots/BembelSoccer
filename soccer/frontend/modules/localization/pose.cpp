@@ -24,7 +24,6 @@ static const int POSEESTIMATE_WORKER_SLEEP_INTERVAL_MS = 200;
 /// the minimum threshold both gyros must surpasse until the robot is assuming a stand up state
 static const float MIN_GYRO_AMPLITUDE = 0.05;
 
-
 Pose::Pose() :
     locaHypoGenerator(NULL),
     loca(NULL),
@@ -172,14 +171,12 @@ void Pose::process() {
     }*/
     
     // add ground truth data, if available and not too old.
-    auto message = LocalizationMessage {
-        .pose = loca->get_position(),
-        .confidence = loca->get_confidence(),
-        .gtTimestamp = 0,
-        .gtPosition = {}
-    };
-
+    bbapi::LocalizationMessageT message;
+    message.pose        = loca->get_position();
+    message.confidence  = loca->get_confidence();
     message.gtTimestamp = _poseBlackboard->gtTimestamp;
+    message.gtPosition  = {};
+
     if ((_poseBlackboard->gtTimestamp > 0)
             && ((getTimestampMs() - _poseBlackboard->gtTimestamp) < 5000)) {
         message.gtPosition = _poseBlackboard->gtPosition;

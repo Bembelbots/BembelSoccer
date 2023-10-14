@@ -2,17 +2,19 @@
 
 #include <chrono>
 #include <thread>
+#include <filesystem>
+#include <system_error>
 
 #include <linux/v4l2-controls.h>
 #include <representations/bembelbots/constants.h>
 #include <representations/camera/camera.h>
 #include <framework/logger/logger.h>
 #include <framework/ipc/time.h>
-#include <framework/util/filesystem.h>
 #include <framework/util/clock.h>
 
 #include "../CameraV4L2.hpp"
 
+namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 
@@ -38,7 +40,8 @@ V6VideoSource::V6VideoSource(const int &cam_id) {
     fs::path dev{"/dev"};
     dev /= isTopCam ? "video-top" : "video-bottom";
 
-    while (!fs::exists(dev)) {
+    std::error_code ec;
+    while (!fs::exists(dev, ec)) {
         sleep_for(1ms);
         LOG_INFO_EVERY_N(1000) << "Waiting for camera device: " << dev;
         static int c = 0;

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+ROBOT_NAME=gray5
+LOLA_PORT=10050
+
+cat << EOF >| .build.env 
+LOCAL_USER_ID=$(id -u)
+LOCAL_GROUP_ID=$(id -g)
+TERM=${TERM}
+GIT_USER="$(git config user.name)"
+ROBOT_NAME=${ROBOT_NAME}
+LOLA_PORT=${LOLA_PORT}
+EOF

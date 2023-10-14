@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include <framework/logger/logger.h>
 #include <framework/math/rotation_matrices.h>
@@ -14,7 +15,6 @@ void CamImage::_init() {
     principalPointX = 319.5f;
     principalPointY = 239.5f;
 
-    _eulers = {};
     _eulerMatrixCached = false;
 }
 

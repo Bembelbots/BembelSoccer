@@ -96,7 +96,7 @@ void Connector::connect() {
     sitDone = false;
 }
 
-void Connector::run() {
+bool Connector::run() {
     static constexpr size_t length{LOLA_PKT_SIZE * 5};
     char pkt[length];
     boost::system::error_code ec;
@@ -107,7 +107,7 @@ void Connector::run() {
 
     // received SIGINT/SIGTERM while waiting for socket
     if (!running)
-        return;
+        return false;
 
     size_t pkt_len = sock.receive(boost::asio::buffer(pkt, length));
     msgpack::object_handle oh = msgpack::unpack(pkt, pkt_len);
@@ -180,8 +180,6 @@ void Connector::run() {
                 continue;
             // frontend has stopped & bot is sitting, save to power off
             say("Poweroff.");
-            if (!simulator)
-                system("/bin/systemctl poweroff");
             running = false;
         }
 
@@ -211,6 +209,8 @@ void Connector::run() {
         // kill zombies
         waitpid((pid_t)-1, 0, WNOHANG);
     }
+
+    return (shutdown && !simulator);
 }
 
 void Connector::stop() {
@@ -280,8 +280,9 @@ void Connector::toggleFrontend(const bool start) {
             say("Failed to start frontend.");
         }
     } else {
+        if (frontendConnected)
+            say("Stopping frontend.");
         forkexec("/usr/bin/killall", "jsfrontend");
-        say("Stopping frontend.");
     }
 }
 
@@ -303,7 +304,10 @@ void Connector::buttonHandler() {
             break;
         case BtnClk::CAM_RESET:
             say("Camera reset.");
-            system("/usr/libexec/reset-cameras.sh toggle");
+            system("/opt/aldebaran/libexec/reset-cameras.sh toggle");
+            system("pkill -9 jsfrontend");
+            system("pkill -9 lola");
+            exit(42);
         default:
             break;
     }
@@ -474,10 +478,10 @@ msgpack::sbuffer &Connector::writeActuators() {
 }
 
 void Connector::say(const std::string &text) {
-    static TTSFifo tts;
+    static TTSSpeechd tts("lola-backend");
 
     std::cout << "[TTS] " << text << std::endl;
-    tts.say(text);
+    tts.say(text, SPD_IMPORTANT);
 }
 
 void Connector::stiffness(const float &v) {

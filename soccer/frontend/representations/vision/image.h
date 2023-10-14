@@ -30,6 +30,7 @@ struct VisionImageProcessed : public VisionImageBase {
 
     VisionImageProcessed(CamImage &img)
         : VisionImageBase(img) {
+            image.lock(ImgLock::WRITER);
             image.lock(ImgLock::DEBUG);
         }
 

@@ -1,12 +1,14 @@
 #pragma once
 #include <framework/rt/message_utils.h>
 #include <framework/math/directed_coord.h>
+#include <roles_generated.h>
 
 struct TeamcommCommand {};
 
-struct ReactiveWalkDebug {
+struct TeamcommDebugInfo {
     DirectedCoord walktarget_pos;
-    Coord goaltarget;
+    Coord dribble_target;
+    bbapi::RobotRole role;
 };
 
-RT_REGISTER_COMMAND(ReactiveWalkDebug, TeamcommCommand);
+RT_REGISTER_COMMAND(TeamcommDebugInfo, TeamcommCommand);

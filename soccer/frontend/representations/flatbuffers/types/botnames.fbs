@@ -1,0 +1,6 @@
+namespace bbapi;
+
+enum RobotName : ubyte {
+    UNKNOWN = 0,
+    SIMULATOR
+}

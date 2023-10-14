@@ -22,4 +22,4 @@ PRIVATE
 
 add_library(bbmath INTERFACE)
 target_compile_features(bbmath INTERFACE cxx_std_17)
-target_link_libraries(bbmath INTERFACE Eigen)
+target_link_libraries(bbmath INTERFACE Eigen3::Eigen)

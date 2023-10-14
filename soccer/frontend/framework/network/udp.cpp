@@ -23,12 +23,7 @@ void UDP::bindSocket(const NetworkPorts &port) {
     memset(_recv_buf, 0, sizeof(_recv_buf));
     openSocket();
     address_v4 a;
-    if (boost::filesystem::exists("/home/nao")) {
-        a = address_v4::any();
-    } else {
-        // only listen on loopback when running in simulator
-        a = address_v4::loopback();
-    }
+    a = address_v4::any();
     udp::endpoint listen_endpoint(a, translatePort(port));
     _socket->bind(listen_endpoint);
 }
