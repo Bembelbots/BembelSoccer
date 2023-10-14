@@ -1,0 +1,2 @@
+add_moduletest(locatest locatest.cpp)
+add_moduletest(test_findintersections test_findintersections.cpp)

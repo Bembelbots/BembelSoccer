@@ -1,0 +1,78 @@
+#!/bin/bash
+
+usage()
+{
+  echo >&2 "usage: $0 { options } <path>"
+  echo >&2 "  options:"
+  echo >&2 "    -d <dot>    path to executable 'dot'"
+  echo >&2 "    -o <path>   set output path"
+  echo >&2 "    -h          show this help"
+  exit 1
+}
+
+set -eu
+
+scriptPath=$(echo $0 | sed "s|^\.\./|`pwd`/../|" | sed "s|^\./|`pwd`/|")
+baseDir=$(dirname "${scriptPath}")
+
+# Process arguments
+dot=dot
+out=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    "-d")
+      shift
+      if [ $# -gt 0 ]; then
+        dot=$1
+      else
+        echo >&2 "error: parameter of '-d' missing"
+        usage
+      fi
+      ;;
+    "-o")
+        shift
+        if [ $# -gt 0 ]; then
+            out=$1
+        else
+            echo >&2 "error: parameter of '-o' missing"
+            usage
+        fi
+        ;;
+    "-h")
+      usage
+      ;;
+    -*)
+      echo >&2 "error: unknown option '$1'"
+      usage
+      ;;
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+# Check arguments
+dotAvailable=`which "$dot" || true`
+if [ "$#" == 0 ]; then
+  usage
+  exit 1
+elif [ ! -e "$1" ]; then
+  echo >&2 "error: input file '$1' does not exist"
+  exit 1
+elif [ -z "$dotAvailable" ]; then
+  echo >&2 "error: cannot find '$dot'"
+  exit 1
+fi
+
+if [ ! -d "$out" ]; then
+    mkdir -p "$out"
+fi
+
+rm -f "$out"/*.pdf
+
+for dotFile in "$1"/*.dot; do
+    file="$out/`basename ${dotFile%.*}`.pdf"
+    echo "Writing graph '$file'" >&2
+    cat "$dotFile" | "$dot" -Tpdf > "$file"
+done
