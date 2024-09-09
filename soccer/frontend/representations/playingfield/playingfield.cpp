@@ -12,6 +12,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "../bembelbots/constants.h"
+#include "gc_enums_generated.h"
 #include <framework/math/old.h>
 #include <framework/util/assert.h>
 #include <framework/logger/logger.h>
@@ -333,7 +334,7 @@ DirectedCoord PlayingField::getReadyPose(int botId, bool hasKickoff) const {
     jsassert(0 <= botId && botId < NUM_PLAYERS);
     switch (botId) {
         case 0:
-            p.coord = {-_lengthInsideBounds / 2.0f + _goalBoxLength/2.f, 0.f};
+            p.coord = {-_lengthInsideBounds / 2.0f + _goalBoxLength / 2.f, 0.f};
             break;
         case 1:
             p.coord = {-_lengthInsideBounds / 2.0f + _penaltyCrossDistance - 0.5f, - _goalWidth /4.f};
@@ -389,9 +390,10 @@ bool PlayingField::insidePenaltybox(const Coord &pos) const {
 
 // returns default unpenalize pose!
 std::vector<DirectedCoord> PlayingField::getUnpenalizedPose() const {
+    const float w_offset = 0.30f; 
     const float l = _lengthInsideBounds / 2.f - _penaltyCrossDistance;
-    const float w = _widthInsideBounds / 2.f;
-    return {{-l, w, Rad{-M_PI_2_F}}, {-l, -w, Rad{M_PI_2_F}}};
+    const float w = _widthInsideBounds / 2.f + w_offset;
+    return {{-l, w, -90_deg}, {-l, -w, 90_deg}};
 }
 
 // returns initial Positions vektor[x] = Position id x
@@ -663,7 +665,9 @@ std::vector<LandmarkOrientation> PlayingField::getDistsAndAngles(const DirectedC
     return ret;
 }
 
-std::vector<DirectedCoord> PlayingField::kick_off_position(SetPlay set_play) {
+std::vector<DirectedCoord> PlayingField::kick_off_position(bbapi::SetPlay set_play) {
+    using bbapi::SetPlay;
+
     switch (set_play){
     case SetPlay::NONE:
         return {DirectedCoord{}};

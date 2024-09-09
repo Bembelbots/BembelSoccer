@@ -15,6 +15,7 @@ RT_REGISTER_COMMAND(SetHeadMotion, BodyCommand);
 
 struct SetHeadLookRCS {
     Coord value;
+    float pitch;
 };
 RT_REGISTER_COMMAND(SetHeadLookRCS, BodyCommand);
 

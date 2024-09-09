@@ -1,0 +1,8 @@
+native_include "representations/flatbuffers/types/campose.h";
+
+namespace bbapi;
+
+struct CamPose (native_type: "::CamPose") {
+    v: [float:3];
+    r: [float:3];
+}

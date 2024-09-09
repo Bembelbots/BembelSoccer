@@ -1,5 +1,7 @@
-DOCKER_COMPOSE ?= docker-compose
+-include config.mk
+
 DOCKER ?= docker
+DOCKER_COMPOSE ?= $(DOCKER)-compose
 USER_ID ?= $(shell id -u)
 SRC_DIR := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 BUILD_DIR ?= build/v6
@@ -9,11 +11,15 @@ EXEC_FLAGS ?= -u$(USER_ID)
 
 # disable pseudo-tty in jenkins builds
 EXEC_FLAGS += $(shell tty -s || echo -T)
-NINJA := $(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild ninja -C /src/soccer/$(BUILD_DIR)
+CMAKE_BUILD := $(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild cmake --build --preset 
 
-all: compile
+all: framework
 
-start: .build.env
+${HOME}/.docker/config.json:
+	@echo "Please login using your Bembelbots login:"
+	$(DOCKER) login git.bembelbots.de
+
+start: .build.env ${HOME}/.docker/config.json
 	$(DOCKER_COMPOSE) up -d
 
 shutdown: .build.env
@@ -28,20 +34,20 @@ update: .build.env
 $(BUILD_DIR)/build.ninja:
 	rm -rf $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)
-	$(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild cmake -Wno-dev -GNinja $(CMAKE_FLAGS) -B /src/soccer/$(BUILD_DIR) /src/soccer/
+	$(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild cmake --preset v6
 
 compile_commands.json: $(BUILD_DIR)/compile_commands.json
 	cp $(BUILD_DIR)/compile_commands.json .
 	sed -i -e "s#/src/soccer/#$(SRC_DIR)#g" compile_commands.json
 
 flatbuffers: | start $(BUILD_DIR)/build.ninja
-	$(NINJA) jrlmonitor_settings bembelbuf_schemas
+	$(CMAKE_BUILD) $@
 
-debug: | start $(BUILD_DIR)/build.ninja
-	$(NINJA) playingfield_debug whistledebug behavior_graph
+debugtools: | start $(BUILD_DIR)/build.ninja
+	$(CMAKE_BUILD) $@
 
-compile: | start $(BUILD_DIR)/build.ninja compile_commands.json
-	$(NINJA)
+framework: | start $(BUILD_DIR)/build.ninja compile_commands.json
+	$(CMAKE_BUILD) $@
 
 $(BUILD_DIR)/compile_commands.json: $(BUILD_DIR)/build.ninja
 
@@ -54,6 +60,9 @@ clean:
 
 shell: start
 	$(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild /bin/bash -l || true
+
+sim: start
+	$(DOCKER_COMPOSE) exec $(EXEC_FLAGS) bembelbuild naosim || true
 
 .PHONY: all shutdown pull clean shell
 

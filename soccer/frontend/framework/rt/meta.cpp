@@ -7,20 +7,20 @@ using namespace rt;
 
 bool ModuleMeta::ready() const {
     bool ready = true;
-    for (auto &f : readyFuncs) {
+    for (const auto &f : readyFuncs) {
         ready &= f();
     }
     return ready;
 }
 
-void ModuleMeta::doPreProcess() {
-    for (auto &func : preProcess) {
+void ModuleMeta::doPreProcess() const {
+    for (const auto &func : preProcess) {
         func();
     }
 }
 
-void ModuleMeta::doPostProcess() {
-    for (auto &func : postProcess) {
+void ModuleMeta::doPostProcess() const {
+    for (const auto &func : postProcess) {
         func();
     }
 }
@@ -54,13 +54,13 @@ std::string Metadata::toStr(EndpointMeta::Direction dir) {
 void Metadata::setRequiredBy() {
     for (auto &module : modules) {
         std::vector<ModuleId> requiredBy;
-        for (auto &endpointId : module.endpoints) {
-            auto &point = endpoints[endpointId];
-            auto &chan = channels[point.channel];
+        for (const auto &endpointId : module.endpoints) {
+            const auto &point = endpoints[endpointId];
+            const auto &chan = channels[point.channel];
             if (point.kind == EndpointMeta::Direction::IN || chan.kind != ChannelMeta::Type::MESSAGE) {
                 continue;
             }
-            for (auto &chanEndpointId : chan.endpoints) {
+            for (const auto &chanEndpointId : chan.endpoints) {
                 auto &other = endpoints[chanEndpointId];
                 if (other.kind == EndpointMeta::Direction::OUT) {
                     continue;
@@ -94,7 +94,7 @@ ModuleId Metadata::insertModule(ModuleMeta &module, std::vector<EndpointMeta> &e
 }
 
 ChannelId Metadata::findOrEmplaceChannel(TypeID dataType, ChannelMeta::Type kind) {
-    for (auto &chan : channels) {
+    for (const auto &chan : channels) {
         if (chan.dataType == dataType) {
             jsassert(chan.kind == kind);
             return chan.id;
@@ -131,7 +131,7 @@ EndpointId Metadata::firstOut(ChannelId channelId) const {
 }
 
 std::string Metadata::channelError(ChannelId id, std::string_view errorMsg) {
-    auto &chan = channels.at(id);
+    const auto &chan = channels.at(id);
     std::string messageName = prettyTypeName(chan.dataType);
 
     std::string messageType = "<<< UNKNOW MESSAGE TYPE >>>";
@@ -160,18 +160,18 @@ std::string Metadata::dumpGraph() const {
     std::stringstream ss{};
 
     ss << "MODULES" << std::endl;
-    for (auto &module : modules) {
+    for (const auto &module : modules) {
         ss << "  id = " << module.id << std::endl << "  name = " << module.name << std::endl << std::endl;
     }
 
     ss << "CHANNELS" << std::endl;
-    for (auto &chan : channels) {
+    for (const auto &chan : channels) {
         ss << "  id = " << chan.id << std::endl
            << "  kind = " << toStr(chan.kind) << std::endl
            << "  dataType = " << prettyTypeName(chan.dataType) << std::endl;
 
         ss << "  endpoints = [ ";
-        for (auto id : chan.endpoints) {
+        for (const auto id : chan.endpoints) {
             ss << id << ", ";
         }
         ss << " ]" << std::endl;
@@ -179,7 +179,7 @@ std::string Metadata::dumpGraph() const {
     }
 
     ss << "ENDPOINTS" << std::endl;
-    for (auto &endpoint : endpoints) {
+    for (const auto &endpoint : endpoints) {
         ss << "  id = " << endpoint.id << std::endl
            << "  kind = " << toStr(endpoint.kind) << std::endl
            << "  module = " << endpoint.module << std::endl

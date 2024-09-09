@@ -1,0 +1,10 @@
+PyQt5
+numpy
+pygame
+scipy
+pydot
+matplotlib
+pyqtgraph
+flatbuffers
+netifaces
+pyasyncore

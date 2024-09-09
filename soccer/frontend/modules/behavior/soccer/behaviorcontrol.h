@@ -2,16 +2,21 @@
 
 #include <framework/rt/module.h>
 #include <representations/blackboards/worldmodel.h>
-#include <representations/blackboards/gamecontrol.h>
 #include <representations/motion/body_state.h>
 #include <representations/motion/body_commands.h>
-#include <representations/whistle/whistleresult.h>
 #include <representations/teamcomm/commands.h>
 
 #include "behavior.h"
+#include "framework/rt/flags.h"
 #include "framework/rt/endpoints.h"
 
+#include "gamecontrol_generated.h"
+#include "whistle_commands_generated.h"
+#include "whistle_message_generated.h"
+#include "gamestate_message_generated.h"
+
 class SettingsBlackboard;
+class ReactiveWalkBlackboard;
 
 namespace BEHAVE_PRIVATE {
 
@@ -28,20 +33,21 @@ public:
 
     void run(microTime time_ms);
 
-
 private:
     rt::Context<SettingsBlackboard> settings;
     rt::Context<PlayingField> playingField;
     rt::Input<Snapshot<WorldModelBlackboard>, rt::Require> worldBb;
-    rt::Input<Snapshot<GamecontrolBlackboard>> gamecontrolBb;
+    rt::Input<bbapi::GamecontrolMessageT, rt::Listen> gamecontrol;
     rt::Input<BodyState> body;
-    rt::Input<WhistleResult, rt::Snoop> whistle;
+    rt::Input<bbapi::WhistleMessageT, rt::Snoop> whistle;
+    rt::Input<bbapi::GamestateMessageT> gameState;
 
     //rt::Output<DynamicRoleMessage> dynamicRole;
     rt::Command<BodyCommand> bodyCmds;
-    rt::Command<WhistleCommand> whistleCmds;
+    rt::Command<bbapi::WhistleCommandT> whistleCmds;
     rt::Command<TeamcommCommand> teamcommCmds;
 
+    std::shared_ptr<ReactiveWalkBlackboard> reactivewalkboard;
     std::shared_ptr<Behavior> _myBehavior;
 
     std::vector<Behavior::OptionInfos::Option> roots;

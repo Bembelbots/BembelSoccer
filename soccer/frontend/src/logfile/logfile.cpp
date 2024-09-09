@@ -1,4 +1,5 @@
 #include "logfile.h"
+#include "gc_enums_generated.h"
 
 #include <filesystem>
 #include <iostream>
@@ -15,7 +16,11 @@
 #include <representations/vision/image.h>
 #include <representations/bembelbots/constants.h>
 
+#include <modules/refereegesture/refereegesture.h>
+
 namespace fs = std::filesystem;
+using bbapi::GameState;
+using bbapi::Penalty;
 
 /*
  * <tick>/<output_name>.bin
@@ -36,44 +41,34 @@ void LogFile::connect(rt::Linker &link) {
 }
 
 void LogFile::setup() {
-    if(not settings->logToFile) {
-        setup_success = false;
+    log_enabled = settings->logToFile;
+    if (not log_enabled) {
         LOG_INFO << "logfile: logToFile disabled";
         return;
     }
     LOG_INFO << "logfile: logToFile enabled";
-
-    if(not fs::is_directory(settings->logPath, filesystem_error)) {
-        setup_success &= fs::create_directories(settings->logPath, filesystem_error);
-    }
-
-    if(not setup_success) {
-        LOG_WARN << "logfile: unable to create directories";
-    }
 }
 
 void LogFile::process() {
-    loggers->wait(12ms);
-    
-    if(not loggers->hasData()) {
+    loggers->wait(std::chrono::milliseconds(CONST::lola_cycle_ms));
+
+    if (not loggers->hasData()) {
         return;
     }
 
     log_images = settings->logImages;
-    log_images &= (*gamecontrol)->gameState == GameState::PLAYING || (*gamecontrol)->gameState == GameState::READY || (*gamecontrol)->gameState == GameState::SET;
-    log_images &= (*gamecontrol)->penalty == Penalty::NONE;
-    log_images &= !(*gamecontrol)->unstiff;
+    log_images &= gamecontrol->gameState != GameState::INITIAL && gamecontrol->gameState != GameState::FINISHED;
+    log_images &= !gamecontrol->penalized;
+    log_images &= !gamecontrol->unstiff;
 
     std::stringstream tickFolderName;
     tickFolderName << ticksPath << "/" << std::setw(10) << std::setfill('0') << tick;
 
     tickDir = tickFolderName.str();
 
-    for(auto logger : *loggers) {
+    for (auto logger : *loggers) {
         auto module = loggers->getModule(logger);
-        logger->consume_all([=](rt::LogData data) {
-            this->on_logdata(module, data);
-        });
+        logger->consume_all([=](rt::LogData data) { this->on_logdata(module, data); });
     }
 }
 
@@ -81,15 +76,14 @@ void LogFile::on_logdata(const rt::ModuleMeta &module, rt::LogData &data) {
     using namespace std::placeholders;
 
     data.handle<VisionImageProcessed>(std::bind(&LogFile::on_log_image, this, _1, _2, _3), module, data);
-    data.handle<BodyState>([=](rt::LogDataContainer<BodyState>& state){
-        tick++;
-    });
+    data.handle<RefereeGestureDebug>(std::bind(&LogFile::on_log_refereegesture, this, _1, _2, _3), module, data);
+    data.handle<BodyState>([=](rt::LogDataContainer<BodyState> &state) { tick++; });
 
-    if(data.is_handled() || not data->is_serializeable()) {
-       return;
+    if (data.is_handled() || not data->is_serializeable()) {
+        return;
     }
 
-    if(not setup_success) {
+    if (not log_enabled) {
         return;
     }
 
@@ -97,23 +91,31 @@ void LogFile::on_logdata(const rt::ModuleMeta &module, rt::LogData &data) {
     out.emit(LogFileContext(out_file, data));
 }
 
-void LogFile::on_log_image(const rt::ModuleMeta &module, rt::LogData &data, rt::LogDataContainer<VisionImageProcessed>& image) {
-    if(not setup_success || not log_images) {
-        image->image.unlock(ImgLock::WRITER);
+void LogFile::on_log_image(
+        const rt::ModuleMeta &module, rt::LogData &data, rt::LogDataContainer<VisionImageProcessed> &image) {
+    if (not log_enabled || not log_images)
         return;
-    }
 
     std::stringstream imageFileName;
     imageFileName << settings->nameToStr(settings->name) << "-" << std::setw(8) << std::setfill('0') << tick;
-    if (image->image.camera == TOP_CAMERA) {
+    if (image->camera == TOP_CAMERA)
         imageFileName << "-top";
-    }
-    else {
+    else
         imageFileName << "-bottom";
-    }
-
     imageFileName << ".jpg";
 
+    auto imagePath = tickDir / imageFileName.str();
+    out.emit(LogFileContext(imagePath, data));
+}
+
+void LogFile::on_log_refereegesture(
+        const rt::ModuleMeta &module, rt::LogData &data, rt::LogDataContainer<RefereeGestureDebug> &image) {
+    if (not log_enabled || not log_images)
+        return;
+
+    std::stringstream imageFileName;
+    imageFileName << settings->nameToStr(settings->name) << "-" << std::setw(8) << std::setfill('0') << tick;
+    imageFileName << "-refereegesture.jpg";
     auto imagePath = tickDir / imageFileName.str();
     out.emit(LogFileContext(imagePath, data));
 }

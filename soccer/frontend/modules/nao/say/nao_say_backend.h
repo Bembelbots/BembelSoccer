@@ -13,13 +13,12 @@ class TTSSpeechd;
 
 class NaoSayBackend : public BaseLoggerBackend {
 public:
-    explicit NaoSayBackend(const std::string &my_id, const int &instance, bool simulator);
+    explicit NaoSayBackend(const std::string &my_id, const bool simulator);
     void write(const std::string &msg);
 
 private:
     std::unique_ptr<TTSSpeechd> tts{nullptr};
     std::atomic<std::string_view> last_msg;
-    int instance;
     bool simulator{false};
     int naoSayTick;
 };

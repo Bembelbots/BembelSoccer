@@ -1,12 +1,14 @@
 #include "walking_engine.h"
 #include "htwkwalk.h"
+#include "framework/joints/joints.hpp"
+#include "lola_names_generated.h"
 
 #define DISABLE_ANGLE_OPERATORS
 #include "../bodycontrol/blackboards/bodyblackboard.h"
 #include <framework/math/directed_coord.h>
 
 namespace detail {
-
+        
 struct WalkingEngineImpl {
     WalkingEngine *engine;
 
@@ -16,74 +18,42 @@ struct WalkingEngineImpl {
     AnkleBalancer ankleBalancer;
     FSR fsr;
     YPR ypr;
-    
-    static inline float position(Joint &joint) {
-        return joint.angle;
-    }
-    
-    static inline float stiffness(Joint &joint) {
-        return joint.stiffness;
-    }
 
-    WalkingEngineImpl(WalkingEngine *engine)
-        : engine(engine) {
+    static inline float position(Joint &joint) { return joint.angle; }
 
-    }
+    static inline float stiffness(Joint &joint) { return joint.stiffness; }
 
-    void setRequest(float dir[3], float feet_angle = 0.0f) {
-        walk.setRequest(dir[0], dir[1], dir[2], feet_angle);
-    }
+    WalkingEngineImpl(WalkingEngine *engine) : engine(engine) {}
 
-    bool isStanding() {
-        return walk.isStanding();
-    }
+    void setRequest(float dir[3], float feet_angle = 0.0f) { walk.setRequest(dir[0], dir[1], dir[2], feet_angle); }
 
-    void setBodyHeightStand(float height) {
-        walk.body_height_stand = height;
-    }
+    bool isStanding() { return walk.isStanding(); }
 
-    void setStandStiffness(float stiffness) {
-        //walk.stiffness_stand = stiffness;
-    }
+    void setBodyHeightStand(float height) { walk.body_height_stand = height; }
 
-    void reset() {
-        walk.reset();
-    }
+    void setStandStiffness(float stiffness) { }
+
+    void reset() { walk.reset(); }
 
     void proceed(BodyBlackboard *bb) {
         proceedOdo();
-        proceedFsr(bb->sensors);
-        proceedAnkelBalancer(bb->gyro);
+        const auto &f{bb->sensors.fsr};
+        fsr.left = {f.left.fl, f.left.fr, f.left.rl, f.left.rr};
+        fsr.right = {f.right.fl, f.right.fr, f.right.rl, f.right.rr};
+        const auto &s{bb->sensors};
+        proceedAnkelBalancer(s.imu.gyroscope);
 
-        LegJoints joints = walk.proceed(
-                fsr,
-                bb->bodyAngles(1), // body_pitch
-                bb->bodyAngles(0), // body_roll
+        LegJoints joints = walk.proceed(fsr,
+                bb->bodyAngles.y(), // body_pitch
+                bb->bodyAngles.x(), // body_roll
                 ankleBalancer,
-                bb->bodyAngles(2), // body_yaw
+                bb->bodyAngles.z(), // body_yaw
                 &odo,
-                &arms
-        );
+                &arms);
 
-        updateActuators(bb->actuators, joints); 
+        updateActuators(bb->actuators, joints);
 
         bb->odometry = odo.getMovementVec();
-    }
-
-    void proceedFsr(const joints::Sensors &sensors) {
-        fsr.left = Foot {
-            .fl = sensors[lFSRFrontLeftSensor],
-            .fr = sensors[lFSRFrontRightSensor],
-            .rl = sensors[lFSRRearLeftSensor],
-            .rr = sensors[lFSRRearRightSensor]
-        };
-        
-        fsr.right = Foot {
-            .fl = sensors[rFSRFrontLeftSensor],
-            .fr = sensors[rFSRFrontRightSensor],
-            .rl = sensors[rFSRRearLeftSensor],
-            .rr = sensors[rFSRRearRightSensor]
-        };
     }
 
     void proceedOdo() {
@@ -91,93 +61,105 @@ struct WalkingEngineImpl {
         odo.scale_y = engine->calibration.scale_odo_y;
     }
 
-    void proceedAnkelBalancer(Eigen::Vector3f &gyro) {
-        ypr = YPR(gyro(2), gyro(1), gyro(0));
+    void proceedAnkelBalancer(const Eigen::Vector3f &gyro) {
+        ypr = YPR(gyro);
         ankleBalancer.proceed(ypr);
     }
 
-    void updateArms(joints::Actuators &actuators) {
+    float getSupportFoot() {
+        return 0;
+    }
+
+    void updateArms(bbipc::Actuators *actuators) {
         auto &calibration = engine->calibration;
 
-        actuators[lShoulderPitchPositionActuator]   = calibration.shoulder_pitch;
-        actuators[lShoulderRollPositionActuator]    = calibration.shoulder_roll;
-        actuators[lElbowYawPositionActuator]        = calibration.elbow_yaw;
-        actuators[lElbowRollPositionActuator]       = calibration.elbow_roll;
+        joints::pos::Arms j(actuators);
+        j[JointNames::LShoulderPitch] = calibration.shoulder_pitch;
+        j[JointNames::LShoulderRoll] = calibration.shoulder_roll;
+        j[JointNames::LElbowYaw] = calibration.elbow_yaw;
+        j[JointNames::LElbowRoll] = calibration.elbow_roll;
 
-        actuators[lWristYawPositionActuator]        = -1.5f;
-        actuators[lHandPositionActuator]            = 0.0f;
+        j[JointNames::LWristYaw] = -1.5f;
+        j[JointNames::LHand] = 0.0f;
 
-        actuators[rShoulderPitchPositionActuator]   =   actuators[lShoulderPitchPositionActuator];
-        actuators[rShoulderRollPositionActuator]    = - actuators[lShoulderRollPositionActuator];
-        actuators[rElbowYawPositionActuator]        = - actuators[lElbowYawPositionActuator];
-        actuators[rElbowRollPositionActuator]       = - actuators[lElbowRollPositionActuator];
-        actuators[rWristYawPositionActuator]        = - actuators[lWristYawPositionActuator];
-        actuators[rHandPositionActuator]            = 0.0f;
+        j[JointNames::RShoulderPitch] = j[JointNames::LShoulderPitch];
+        j[JointNames::RShoulderRoll] = -j[JointNames::LShoulderRoll];
+        j[JointNames::RElbowYaw] = -j[JointNames::LElbowYaw];
+        j[JointNames::RElbowRoll] = -j[JointNames::LElbowRoll];
+        j[JointNames::RWristYaw] = -j[JointNames::LWristYaw];
+        j[JointNames::RHand] = 0.0f;
+
+        j.write(actuators);
     }
 
-    void updateLegs(joints::Actuators &actuators, LegJoints &joints) {
-        actuators[lHipYawPitchPositionActuator]     = position(joints[HipYawPitch]);
-
-        actuators[lHipRollPositionActuator]         = position(joints[LHipRoll]);
-        actuators[lHipPitchPositionActuator]        = position(joints[LHipPitch]);
-        actuators[lKneePitchPositionActuator]       = position(joints[LKneePitch]);
-        actuators[lAnklePitchPositionActuator]      = position(joints[LAnklePitch]);
-        actuators[lAnkleRollPositionActuator]       = position(joints[LAnkleRoll]);
-
-        actuators[rHipRollPositionActuator]         = position(joints[RHipRoll]);
-        actuators[rHipPitchPositionActuator]        = position(joints[RHipPitch]);
-        actuators[rKneePitchPositionActuator]       = position(joints[RKneePitch]);
-        actuators[rAnklePitchPositionActuator]      = position(joints[RAnklePitch]);
-        actuators[rAnkleRollPositionActuator]       = position(joints[RAnkleRoll]);
+    void updateLegs(bbipc::Actuators *actuators, LegJoints &joints) {
+        joints::pos::Legs pos(actuators);
+        joints::stiffness::Legs stiff(actuators);
         
-        actuators[lHipYawPitchHardnessActuator]     = stiffness(joints[HipYawPitch]);
+        pos[JointNames::LHipYawPitch] = position(joints[HipYawPitch]);
 
-        actuators[lHipRollHardnessActuator]         = stiffness(joints[LHipRoll]);
-        actuators[lHipPitchHardnessActuator]        = stiffness(joints[LHipPitch]);
-        actuators[lKneePitchHardnessActuator]       = stiffness(joints[LKneePitch]);
-        actuators[lAnklePitchHardnessActuator]      = stiffness(joints[LAnklePitch]);
-        actuators[lAnkleRollHardnessActuator]       = stiffness(joints[LAnkleRoll]);
+        pos[JointNames::LHipRoll] = position(joints[LHipRoll]);
+        pos[JointNames::LHipPitch] = position(joints[LHipPitch]);
+        pos[JointNames::LKneePitch] = position(joints[LKneePitch]);
+        pos[JointNames::LAnklePitch] = position(joints[LAnklePitch]);
+        pos[JointNames::LAnkleRoll] = position(joints[LAnkleRoll]);
 
-        actuators[rHipRollHardnessActuator]         = stiffness(joints[RHipRoll]);
-        actuators[rHipPitchHardnessActuator]        = stiffness(joints[RHipPitch]);
-        actuators[rKneePitchHardnessActuator]       = stiffness(joints[RKneePitch]);
-        actuators[rAnklePitchHardnessActuator]      = stiffness(joints[RAnklePitch]);
-        actuators[rAnkleRollHardnessActuator]       = stiffness(joints[RAnkleRoll]);
+        pos[JointNames::RHipRoll] = position(joints[RHipRoll]);
+        pos[JointNames::RHipPitch] = position(joints[RHipPitch]);
+        pos[JointNames::RKneePitch] = position(joints[RKneePitch]);
+        pos[JointNames::RAnklePitch] = position(joints[RAnklePitch]);
+        pos[JointNames::RAnkleRoll] = position(joints[RAnkleRoll]);
+
+        stiff[JointNames::LHipYawPitch] = stiffness(joints[HipYawPitch]);
+
+        stiff[JointNames::LHipRoll] = stiffness(joints[LHipRoll]);
+        stiff[JointNames::LHipPitch] = stiffness(joints[LHipPitch]);
+        stiff[JointNames::LKneePitch] = stiffness(joints[LKneePitch]);
+        stiff[JointNames::LAnklePitch] = stiffness(joints[LAnklePitch]);
+        stiff[JointNames::LAnkleRoll] = stiffness(joints[LAnkleRoll]);
+
+        stiff[JointNames::RHipRoll] = stiffness(joints[RHipRoll]);
+        stiff[JointNames::RHipPitch] = stiffness(joints[RHipPitch]);
+        stiff[JointNames::RKneePitch] = stiffness(joints[RKneePitch]);
+        stiff[JointNames::RAnklePitch] = stiffness(joints[RAnklePitch]);
+        stiff[JointNames::RAnkleRoll] = stiffness(joints[RAnkleRoll]);
+
+        pos.write(actuators);
+        stiff.write(actuators);
     }
- 
-    void updateActuators(joints::Actuators &actuators, LegJoints &legs) {
+
+    void updateActuators(bbipc::Actuators *actuators, LegJoints &legs) {
         updateArms(actuators);
         updateLegs(actuators, legs);
-    }      
-        
+    }
+
     void reloadSettings(const WalkCalibration &calib) {
-        walk.step_duration                  = calib.step_duration;              // s
-        walk.max_forward                    = calib.max_forward;                // m/s
-        walk.max_backward                   = calib.max_backward;               // m/s
-        walk.max_strafe                     = calib.max_strafe;                 // m/s
-        walk.max_turn                       = calib.max_turn;                   // rad/s
-        walk.max_acceleration_forward       = calib.max_acceleration_forward;   // m/s/s
-        walk.max_deceleration_forward       = calib.max_deceleration_forward;   // m/s/s
-        walk.max_acceleration_side          = calib.max_acceleration_side;      // m/s/s
-        walk.max_acceleration_turn          = calib.max_acceleration_turn;      // rad/s/s
-        walk.min_rel_step_duration          = calib.min_rel_step_duration;
-        walk.max_rel_step_duration          = calib.max_rel_step_duration;
-        walk.step_duration_factor           = calib.step_duration_factor;
-        walk.body_shift_amp                 = calib.body_shift_amp;
-        walk.body_shift_smoothing           = calib.body_shift_smoothing;
-        walk.body_offset_x                  = calib.body_offset_x;
-        walk.waddle_gain                    = calib.waddle_gain;
-        walk.stairway_gain                  = calib.stairway_gain;
-        walk.basic_step_height              = calib.basic_step_height;
-        walk.forward_step_height            = calib.forward_step_height;
-        walk.support_recover_factor         = calib.support_recover_factor;
-        walk.velocity_combination_damping   = calib.velocity_combination_damping;
-    } 
- 
-}; 
- 
-} 
- 
+        walk.step_duration = calib.step_duration;                       // s
+        walk.max_forward = calib.max_forward;                           // m/s
+        walk.max_backward = calib.max_backward;                         // m/s
+        walk.max_strafe = calib.max_strafe;                             // m/s
+        walk.max_turn = calib.max_turn;                                 // rad/s
+        walk.max_acceleration_forward = calib.max_acceleration_forward; // m/s/s
+        walk.max_deceleration_forward = calib.max_deceleration_forward; // m/s/s
+        walk.max_acceleration_side = calib.max_acceleration_side;       // m/s/s
+        walk.max_acceleration_turn = calib.max_acceleration_turn;       // rad/s/s
+        walk.min_rel_step_duration = calib.min_rel_step_duration;
+        walk.max_rel_step_duration = calib.max_rel_step_duration;
+        walk.step_duration_factor = calib.step_duration_factor;
+        walk.body_shift_amp = calib.body_shift_amp;
+        walk.body_shift_smoothing = calib.body_shift_smoothing;
+        walk.body_offset_x = calib.body_offset_x;
+        walk.waddle_gain = calib.waddle_gain;
+        walk.stairway_gain = calib.stairway_gain;
+        walk.basic_step_height = calib.basic_step_height;
+        walk.forward_step_height = calib.forward_step_height;
+        walk.support_recover_factor = calib.support_recover_factor;
+        walk.velocity_combination_damping = calib.velocity_combination_damping;
+    }
+};
+
+} // namespace detail
+
 WalkingEngine::WalkingEngine() {
     impl = std::make_shared<detail::WalkingEngineImpl>(this);
 }
@@ -222,13 +204,17 @@ void WalkingEngine::setStiffness(float stiffness) {
 }
 
 void WalkingEngine::setStand(bool stand) {
-    if(!stand) {
+    if (!stand) {
         return;
     }
-    float wdir[3] = { 0.0f, 0.0f, 0.0f };
+    float wdir[3] = {0.0f, 0.0f, 0.0f};
     impl->setRequest(wdir, 0.0f);
 }
 
 bool WalkingEngine::isStanding() {
     return impl->isStanding();
+}
+
+float WalkingEngine::getSupportFoot() {
+    return impl->getSupportFoot();
 }

@@ -2,6 +2,7 @@
 #include <framework/logger/logger.h>
 #include <framework/util/frame.h>
 #include <framework/thread/util.h>
+#include <modules/whistle/commands.h>
 
 void SimpleBehavior::setup() {
 
@@ -19,7 +20,7 @@ void SimpleBehavior::process() {
     FrameScope frame(30ms);
     if(!once) {
         once = true;
-        whistle.enqueue<WhistleStart>();
+        whistle.enqueue<bbapi::WhistleStartT>();
         //motion.enqueue<DoMotion>(Motion::STAND);
         motion.enqueue<NormalStand>();
         //sleep_for(500ms);

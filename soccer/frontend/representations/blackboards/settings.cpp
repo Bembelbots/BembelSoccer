@@ -24,10 +24,6 @@ SettingsBlackboard::SettingsBlackboard() : Blackboard("RobotSettings") {
     INIT_VAR(simulator, false, "is this a simulated robot?");
     INIT_VAR(docker, false, "running simulator inside docker container?");
 
-    INIT_VAR_RW(isPenaltyShootout,
-            false,
-            "true if bot is either configured as penalty kicker/goalie or enabled by gamecontroller");
-
     INIT_VAR_RW(logImages, false, "flag, which decides to save images");
     INIT_VAR_RW(logImagesInterval,
             camera::fps,
@@ -102,7 +98,7 @@ bool SettingsBlackboard::writeConfig(ConfigFiles &fcfg) {
     WRITE_KEY(cfg, logImages, bool);
     WRITE_KEY(cfg, logImagesInterval, int);
     WRITE_KEY_ENUM(cfg, fieldSize);
-    WRITE_KEY_VALUE(cfg, id, id + 1, int);
+    WRITE_KEY_VALUE(cfg, jerseyNumber, id + 1, int);
     WRITE_KEY(cfg, teamNumber, int);
     WRITE_KEY_ENUM(cfg, role);
     return true;

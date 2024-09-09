@@ -12,7 +12,7 @@ struct PositionPlain {
 	const LegPositionPlain rightLeg;
 	const float gamma;
 
-	PositionPlain(const LegPositionPlain _leftLeg, const LegPositionPlain _rightLeg, const float _gamma) :
+	PositionPlain(const LegPositionPlain &_leftLeg, const LegPositionPlain &_rightLeg, const float &_gamma) :
 			leftLeg(_leftLeg), rightLeg(_rightLeg), gamma(_gamma) {
 	}
 };

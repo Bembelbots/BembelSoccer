@@ -1,13 +1,15 @@
 #pragma once
 #include <chrono>
 #include <vector>
+#include <functional>
 #include <stdint.h>
 #include "cameradef.h"
 #include "naocameras.h"
 
 class CameraConfig {
 public:
-    static void setCameras(std::shared_ptr<NaoCameras>);
+    using get_cameras_fn = std::function<NaoCameras*(void)>;
+    static void setCameras(get_cameras_fn);
 
     static int Exposure(const int camera);
     static void Exposure(const int camera, const int value,
@@ -47,7 +49,7 @@ public:
 
 protected:
     static std::vector<std::vector<int>> parameters;
-    static std::shared_ptr<NaoCameras> cameras;
+    static get_cameras_fn getCameras;
 
     static int getParameter(const int camera,
                             CameraDefinitions::CameraOption option);

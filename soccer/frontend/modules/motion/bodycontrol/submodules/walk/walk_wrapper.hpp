@@ -37,6 +37,7 @@ public:
 
         bb->qns[IS_WALKING] = !walk.isStanding();
         bb->qns[IS_STANDING] = walk.isStanding();
+        bb->supportFoot = walk.getSupportFoot();
 
         return MOTION_STABLE;
     }

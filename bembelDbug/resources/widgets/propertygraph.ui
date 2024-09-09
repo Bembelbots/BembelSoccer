@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PropertyGraphWidget</class>
+ <widget class="QWidget" name="PropertyGraphWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>500</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Property Graph</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

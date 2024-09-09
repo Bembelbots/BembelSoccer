@@ -56,7 +56,7 @@ CamImage Bl2::load(const std::string &filename, size_t w, size_t h, int camera) 
         //@TODO load all required data for the transform using log data
         std::cout << "camera transformation included in this image" << std::endl;
 
-        camPose eulers;
+        CamPose eulers;
 
         std::cout << "eulers: ";
         for (size_t i = 0; i < 3; ++i) {

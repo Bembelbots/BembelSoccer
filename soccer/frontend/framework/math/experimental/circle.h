@@ -19,7 +19,7 @@ public:
 
     bool containsPoint(Vector2<T> point) { return ((midpoint - point).len() < radius); }
 
-    T distanceOfPointToCircumference(Vector2<T> point) { return fabs((midpoint - point).len() - radius); }
+    T distanceOfPointToCircumference(Vector2<T> point) { return std::abs((midpoint - point).len() - radius); }
 
     Vector2<T> midpoint;
     T radius;

@@ -2,7 +2,6 @@
 #include <cmath>
 #include <bodycontrol/internals/submodule.h>
 #include <framework/joints/joints.hpp>
-#include <bodycontrol/utils/special_stances.hpp>
 #include <framework/logger/logger.h>
 #include <framework/math/angle.h>
 #include <bodycontrol/utils/state_machine.h>
@@ -27,8 +26,10 @@ private:
     float shoulder_pitch_walking;
 
     SubModuleReturnValue BC_STATE_MACHINE(BodyBlackboard *bb) {
+        joints::pos::Arms arms(bb->sensors);
+
         BC_INITIAL_STATE(reset, RUNNING) {
-            if(bb->prevQns[IS_WALKING]){
+            if (bb->prevQns[IS_WALKING]) {
                 goto init;
             }
         }
@@ -39,24 +40,24 @@ private:
                 r_frame_count = 0;
             }
 
-            l_shoulder_positions[l_frame_count] = bb->sensors[lShoulderPitchPositionSensor];
-            r_shoulder_positions[r_frame_count] = bb->sensors[rShoulderPitchPositionSensor];
+            l_shoulder_positions[l_frame_count] = arms[JointNames::LShoulderPitch];
+            r_shoulder_positions[r_frame_count] = arms[JointNames::RShoulderPitch];
 
             l_frame_count++;
             r_frame_count++;
 
-            if(l_frame_count == window_size && r_frame_count == window_size){
+            if (l_frame_count == window_size && r_frame_count == window_size) {
                 goto detect;
             }
         }
 
         BC_STATE(detect, RUNNING) {
-            if(not bb->prevQns[IS_WALKING]){
+            if (not bb->prevQns[IS_WALKING]) {
                 goto reset;
             }
 
-            float lShoulderPitch = bb->sensors[lShoulderPitchPositionSensor];
-            float rShoulderPitch = bb->sensors[rShoulderPitchPositionSensor];
+            float lShoulderPitch = arms[JointNames::LShoulderPitch];
+            float rShoulderPitch = arms[JointNames::RShoulderPitch];
 
             auto l_pitch_reference = calculateAverage(l_shoulder_positions);
             auto r_pitch_reference = calculateAverage(r_shoulder_positions);
@@ -84,31 +85,24 @@ private:
                 r_frame_count++;
             }
 
-            if(!(bb->qns[IS_OBSTACLE_RIGHT] or bb->qns[IS_OBSTACLE_LEFT])){
+            if (!(bb->qns[IS_OBSTACLE_RIGHT] or bb->qns[IS_OBSTACLE_LEFT])) {
                 arms_stiffness.fill(stiffness_low);
             }
 
             arms_stiffness.write(bb->actuators);
         }
-
     }
 
-    float calculateAverage(const std::vector<float> &measurements){
+    float calculateAverage(const std::vector<float> &measurements) {
         assert(measurements.size() != 0);
         auto sum = std::accumulate(measurements.begin(), measurements.end(), 0.0f);
-        return sum / measurements.size(); 
+        return sum / measurements.size();
     }
 
 public:
-    ObstacleDetector()
-    : l_shoulder_positions(window_size, 0.0f), 
-        r_shoulder_positions(window_size, 0.0f) {}
+    ObstacleDetector() : l_shoulder_positions(window_size, 0.0f), r_shoulder_positions(window_size, 0.0f) {}
 
-    SubModuleReturnValue step(BodyBlackboard *bb) {
-        return BC_RUN_STATE_MACHINE(bb);
-    }
+    SubModuleReturnValue step(BodyBlackboard *bb) { return BC_RUN_STATE_MACHINE(bb); }
 
-    void reset(){
-        reset_state_machine();
-    }
+    void reset() { reset_state_machine(); }
 };

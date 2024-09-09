@@ -19,7 +19,7 @@ endif()
 
 add_definitions("-DCPU_ONLY")
 
-find_package(Boost REQUIRED COMPONENTS system filesystem thread program_options chrono regex locale)
+find_package(Boost REQUIRED COMPONENTS system filesystem thread program_options chrono regex locale python)
 find_package(OpenCV REQUIRED COMPONENTS core calib3d imgproc imgcodecs highgui)
 find_package(Caffe REQUIRED)
 find_package(FlatBuffers REQUIRED)
@@ -40,4 +40,4 @@ add_subdirectory(external EXCLUDE_FROM_ALL)
 add_subdirectory(firmware)
 add_subdirectory(frontend)
 
-add_custom_target(framework DEPENDS jsfrontend jrlmonitor  lola-backend)
+add_custom_target(framework DEPENDS jsfrontend lola-backend)

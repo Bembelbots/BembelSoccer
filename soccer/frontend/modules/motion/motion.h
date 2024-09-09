@@ -7,8 +7,6 @@
 #include "../nao/naostate.h"
 #include "bodycontrol/blackboards/body_interface.h"
 
-#include <cam_pose_message_generated.h>
-
 class BodyControl;
 
 class MotionModule : public rt::NoThreadModule {
@@ -23,7 +21,6 @@ private:
     rt::Context<SettingsBlackboard> settings;
     rt::Output<BodyState, rt::Event> body_state;
     rt::Command<BodyCommand, rt::Handle> cmds;
-    rt::Output<bbapi::CamPoseMessageT, rt::Event> camPose;
 
     BodyInterface interface;
 

@@ -23,6 +23,8 @@ public:
     void setStiffness(float);
     void setStand(bool);
 
+    float getSupportFoot();
+
 private:
     friend detail::WalkingEngineImpl;
     std::shared_ptr<detail::WalkingEngineImpl> impl;

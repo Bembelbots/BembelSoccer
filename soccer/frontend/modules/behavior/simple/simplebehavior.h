@@ -1,8 +1,8 @@
 #pragma once
+#include "whistle_commands_generated.h"
+#include "whistle_message_generated.h"
 #include <framework/rt/module.h>
 #include <representations/blackboards/settings.h>
-#include <representations/whistle/commands.h>
-#include <representations/whistle/whistleresult.h>
 #include <representations/motion/body_commands.h>
 
 class SimpleBehavior : public rt::Module {
@@ -13,8 +13,8 @@ public:
     void stop() override;
 private:
     rt::Context<SettingsBlackboard> settings;
-    rt::Command<WhistleCommand> whistle;
+    rt::Command<bbapi::WhistleCommandT> whistle;
     rt::Command<BodyCommand> motion;
-    rt::Input<WhistleResult, rt::Snoop> whistle_result;
+    rt::Input<bbapi::WhistleMessageT, rt::Snoop> whistle_result;
     bool once = false;
 };

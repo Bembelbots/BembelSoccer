@@ -14,7 +14,7 @@ public:
     std::pair<float, float> calcTorsoAnglesRightLeg();
     std::pair<float, float> calcTorsoAnglesLeftLeg();
 
-    PositionFeet(LegPosition _leftLeg, LegPosition _rightLeg) : leftLeg(_leftLeg), rightLeg(_rightLeg) {}
+    PositionFeet(const LegPosition &_leftLeg, const LegPosition &_rightLeg) : leftLeg(_leftLeg), rightLeg(_rightLeg) {}
 };
 }  // namespace kinematics
 #endif

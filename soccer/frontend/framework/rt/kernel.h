@@ -66,7 +66,7 @@ private:
         ConnectFn connect;
         SetupFn setup;
 
-        LinkContext(ModuleMeta moduleMeta, ConnectFn connect, SetupFn setup)
+        LinkContext(const ModuleMeta &moduleMeta, const ConnectFn &connect, const SetupFn &setup)
             : moduleMeta(moduleMeta), connect(connect), setup(setup) {}
     };
 

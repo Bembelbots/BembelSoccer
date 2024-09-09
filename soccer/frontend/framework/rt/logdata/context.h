@@ -28,7 +28,7 @@ public:
     using capacity = boost::lockfree::capacity<1000>;
     using queue_type = boost::lockfree::spsc_queue<data_type, capacity>;
     
-    ModuleId id;
+    ModuleId id{0};
 
     LogDataStorage(LogDataMeta *meta)
         : meta(meta) {
@@ -122,7 +122,7 @@ private:
     friend Linker;
     friend Kernel;
 
-    const rt::Metadata* meta;
+    const rt::Metadata* meta{nullptr};
     logger_storage_type loggers;
     LogDataMeta logMeta;
 };

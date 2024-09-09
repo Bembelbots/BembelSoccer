@@ -22,6 +22,8 @@ namespace BEHAVE_PRIVATE {
 
 namespace C = CONSTANTS;
 
+using namespace bbapi;
+
 // Behavior wraps all options together
 class Behavior : public Cabsl<Behavior>, public BehaviorBlackboard {
 

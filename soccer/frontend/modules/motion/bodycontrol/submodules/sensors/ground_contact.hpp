@@ -6,26 +6,19 @@ class GroundContact : public SubModule {
 
 public:
     SubModuleReturnValue step(BodyBlackboard * bb) override {
+        constexpr float THRESHOLD{.1f};
+        const auto &fsr{bb->sensors.fsr};
         // check ground contact
         bool leftGroundContact = false;
-        for (int i = lFSRFrontLeftSensor; i <= lFSRRearRightSensor; ++i) {
-            if (bb->sensors[i] > 0.1f) {
-                leftGroundContact = true;
-                break;
-            }
-        }
+        for (const float &f: fsr.left.arr)
+            leftGroundContact |= (f > THRESHOLD);
 
         bool rightGroundContact = false;
-        for (int i = rFSRFrontLeftSensor; i <= rFSRRearRightSensor; ++i) {
-            if (bb->sensors[i] > 0.1f) {
-                rightGroundContact = true;
-                break;
-            }
-        }
+        for (const float &f: fsr.right.arr)
+            rightGroundContact |= (f > THRESHOLD);
 
         bb->qns[HAS_GROUND_CONTACT] = (rightGroundContact || leftGroundContact);
 
         return RUNNING;
     }
-
 };

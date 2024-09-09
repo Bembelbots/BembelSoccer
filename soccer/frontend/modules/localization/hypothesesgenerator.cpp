@@ -63,12 +63,14 @@ vector<DirectedCoord> HypothesesGenerator::createHypothesesOfALandmark(const Vis
         cross1.wcs_x = 0.0f;
         cross1.wcs_y = 0.0f;
         cross1.wcs_alpha = M_PI/2.0f;
+        cross1.degree = 4;
         map_crosses.push_back(cross1);
 
         LandmarkCross cross2;
         cross2.wcs_x = 0.0f;
         cross2.wcs_y = 0.0f;
         cross2.wcs_alpha = -M_PI/2.0f;
+        cross2.degree = 4;
         map_crosses.push_back(cross2);
     }
     
@@ -104,7 +106,7 @@ pair<vector<DirectedCoord>,int> HypothesesGenerator::uniteHypothesesOfMultipleLa
                     for (auto hypo_l2: hypos.at(i_landm2)){
                         i_h2++;
                         if ((hypo_l1.coord.dist(hypo_l2.coord) < max_dist) and
-                                (fabs(hypo_l1.angle.dist(hypo_l2.angle).rad()) < max_angledist)) {
+                                (std::abs(hypo_l1.angle.dist(hypo_l2.angle).rad()) < max_angledist)) {
                             //found a landmark that leads to matching hypos
                             matching_landmark++;
                             continue; // go on with next landmark

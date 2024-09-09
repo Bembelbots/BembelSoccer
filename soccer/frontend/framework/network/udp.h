@@ -27,7 +27,7 @@ public:
      * @param port is a port number from which sent packets will originate
      * @param tn team number used for SPL message port
      */
-    UDP(const NetworkPorts &port = RANDOM, const int &tn = -1);
+    explicit UDP(const NetworkPorts &port = RANDOM, const int &tn = -1);
 
     /**
      * lambda compatible constructor

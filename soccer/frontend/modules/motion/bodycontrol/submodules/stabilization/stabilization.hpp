@@ -1,25 +1,19 @@
 #pragma once
 
 #include "bodycontrol/internals/submodule.h"
+#include "framework/joints/joints.hpp"
+#include "representations/flatbuffers/types/actuators.h"
+#include <Eigen/src/Core/Matrix.h>
 
 class Stabilization : public SubModule {
 
 public:
-    SubModuleReturnValue step(BodyBlackboard * bb) override {
-        if(deactivate){
-            bb->stabilizationType = StabilizationType::DEACTIVATED;
-            return RUNNING;
-        }
-
-        float gyroX = bb->sensors[gyroXSensor];
-        float gyroY = bb->sensors[gyroYSensor];
-
-        switch(bb->stabilizationType){
+    SubModuleReturnValue step(BodyBlackboard *bb) override {
+        switch (bb->stabilizationType) {
             case StabilizationType::ARMS:
-                stabilizeUsingArms(bb->actuators.get().data(), gyroX, gyroY);
+                stabilizeUsingArms(bb->actuators, bb->sensors.imu.gyroscope);
                 break;
-            default:
-                // do nothing
+            default: // do nothing
                 break;
         }
 
@@ -27,13 +21,13 @@ public:
     }
 
 private:
-    bool deactivate = false;
-
-    void stabilizeUsingArms(float *actuators, const float &angleX, const float &angleY) {
-        actuators[rShoulderRollPositionActuator] += angleX * 2.0f;
-        actuators[lShoulderRollPositionActuator] -= angleX * 2.0f;
-        actuators[rShoulderPitchPositionActuator] -= angleY * 2.0f;
-        actuators[lShoulderPitchPositionActuator] -= angleY * 2.0f;
+    void stabilizeUsingArms(bbipc::Actuators *actuators, const Eigen::Vector3f &gyro) {
+        joints::pos::Arms arms;
+        arms.read(actuators);
+        arms[JointNames::LShoulderRoll] -= gyro.x() * 2.0f;
+        arms[JointNames::RShoulderRoll] += gyro.x() * 2.0f;
+        arms[JointNames::LShoulderPitch] -= gyro.y() * 2.0f;
+        arms[JointNames::RShoulderPitch] -= gyro.y() * 2.0f;
+        arms.write(actuators);
     }
-
 };

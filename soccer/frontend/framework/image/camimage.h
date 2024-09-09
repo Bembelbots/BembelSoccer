@@ -21,7 +21,7 @@ public:
 
     float focalLengthX{0}, focalLengthY{0};
 
-    camPose _eulers;
+    CamPose _eulers;
 
     cv::Mat3f cameraMatrix;
     cv::Vec<float, 5> distCoeffs;
@@ -55,7 +55,7 @@ public:
     // this is the orientation (translation and rotation) from the head joint
     // related to the point between the ankles of the bot.
     // \todo: more documenatation.
-    void setTransform(const camPose &eulers);
+    void setTransform(const CamPose &eulers);
 
     void setCalibration(const float &pPointX, const float &pPointY, const float &fLenX, const float &fLenY,
             const float &foVL = VIEW_HORIZONTAL / 2.f, const float &foVR = VIEW_HORIZONTAL / 2.f,

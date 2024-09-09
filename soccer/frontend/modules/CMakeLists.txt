@@ -4,9 +4,12 @@ include(cmake/motion.cmake)
 include(cmake/whistle.cmake)
 include(cmake/behavior.cmake)
 include(cmake/gamecontrol.cmake)
+include(cmake/gamestate.cmake)
 include(cmake/localization.cmake)
+include(cmake/refereegesture.cmake)
 include(cmake/teamcomm.cmake)
 include(cmake/worldmodel.cmake)
+include(cmake/logevents.cmake)
 
 add_library(bbmodules INTERFACE)
 
@@ -25,7 +28,10 @@ INTERFACE
     modwhistle
     modbehavior
     modgamecontrol
+    modgamestate
     modlocalization
+    modrefereegesture
     modteamcomm
     modworldmodel
+    modlogevents
 )

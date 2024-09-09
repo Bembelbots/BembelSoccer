@@ -5,7 +5,6 @@ PRIVATE
     ${MODNAO_DIR}/modules/naothread.cpp
     ${MODNAO_DIR}/modules/imagethread.cpp
 
-    ${MODNAO_DIR}/camera/NaoCamera.cpp
     ${MODNAO_DIR}/camera/image_buffer.cpp
     ${MODNAO_DIR}/camera/naocameras.cpp
     ${MODNAO_DIR}/camera/cameraconfig.cpp

@@ -1,0 +1,56 @@
+include "lola_names.fbs";
+native_include "representations/flatbuffers/types/actuators.h";
+
+namespace bbapi;
+
+struct JointActuators {
+    position: [float:25];
+    stiffness: [float:25];
+}
+
+struct LEDEars {
+    left: [float:10];
+    right: [float:10];
+}
+
+struct LEDEye {
+    r: [float:8];
+    b: [float:8];
+    g: [float:8];
+}
+
+struct LEDEyes {
+    left: LEDEye;
+    right: LEDEye;
+}
+
+struct LEDSingle {
+    r: float;
+    g: float;
+    b: float;
+}
+
+struct LEDFeet {
+    left: LEDSingle;
+    right: LEDSingle;
+}
+
+struct LED {
+    chest: LEDSingle;
+    ears: LEDEars;
+    eyes: LEDEyes;
+    feet: LEDFeet;
+    skull: [float:12];
+}
+
+struct SonarActuators {
+    left: bool;
+    right: bool;
+}
+
+struct Actuators (native_inline, native_type: "bbipc::Actuators") {
+    joints: JointActuators;
+    led: LED;
+    sonar: SonarActuators;
+}
+

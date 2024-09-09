@@ -1,0 +1,95 @@
+{
+  "controller_commands": {
+    "walk_forward": {
+      "name": "Walk Forward",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "W",
+      "gamepad": "",
+      "value": 2
+    },
+    "walk_backward": {
+      "name": "Walk Backward",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "S",
+      "gamepad": "",
+      "value": 3
+    },
+    "stand": {
+      "name": "Stand",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "Space",    
+      "gamepad": "",
+      "value": 0
+    },
+    "tipple": {
+      "name": "Tipple",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "T",
+      "gamepad": "",
+      "value": 1
+    },
+    "turn_left": {
+      "name": "Turn Left",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "Q",
+      "gamepad": "",
+      "value": 4
+    },
+    "turn_right": {
+      "name": "Turn Right",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "E",
+      "gamepad": "",
+      "value": 5
+    },
+    "strafe_left": {
+      "name": "Strafe Left",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "A",
+      "gamepad": "",
+      "value": 6
+    },
+    "strafe_right": {
+      "name": "Strafe Right",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "D",
+      "gamepad": "",
+      "value": 7
+    },
+    "kick": {
+      "name": "Kick",
+      "symbol": "BehaviorBlackboard.remote_comm",      
+      "keybinding": "X",
+      "gamepad": "",
+      "value": 8
+    },
+    "stand_up": {
+      "name": "Stand Up",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "Y",
+      "gamepad": "",
+      "value": 9
+    },
+    "design": {
+      "name": "Design",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "",
+      "gamepad": "",
+      "value": 11
+    },
+    "head_sweep": {
+      "name": "Head Sweep",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "G",
+      "gamepad": "",
+      "value": 12
+    },
+    "head_static": {
+      "name": "Head Static",
+      "symbol": "BehaviorBlackboard.remote_comm",
+      "keybinding": "H",
+      "gamepad": "",
+      "value": 13
+    }
+  }
+}

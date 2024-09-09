@@ -1,13 +1,11 @@
+include "../types/campose.fbs";
+native_include "representations/flatbuffers/types/campose.h";
+
 namespace bbapi;
 
-struct CamPose {
-    v: [float:3];
-    r: [float:3];
-}
-
 table CamPoseMessage {
-    top: CamPose;
-    bottom: CamPose;
+    top: CamPose (native_inline);
+    bottom: CamPose (native_inline);
 }
 
 root_type CamPoseMessage;

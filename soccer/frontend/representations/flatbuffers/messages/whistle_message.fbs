@@ -1,0 +1,7 @@
+namespace bbapi;
+
+table WhistleMessage {
+    found: bool;
+}
+
+root_type WhistleMessage;

@@ -22,7 +22,7 @@ Pose3D::Pose3D() {
 }
 
 void Pose3D::print() const {
-    for (auto x : pose) {
+    for (const auto &x : pose) {
         for (int y = 0; y < 4; y++) {
             std::cout << x[y] << "\t";  // display the current element out of the array
         }

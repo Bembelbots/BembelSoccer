@@ -1,0 +1,36 @@
+include "../types/gc_teaminfo.fbs";
+include "../types/gc_robotinfo.fbs";
+
+namespace bbapi;
+
+table GamecontrolMessage {
+    gc_version: uint8;
+    packet_number: uint8;
+    players_per_team: uint8;
+
+    competition_phase: CompetitionPhase;
+    competition_type: CompetitionType;
+    
+    game_phase: GamePhase;
+    game_state: GameState;
+    set_play: SetPlay;
+
+    first_half: bool;
+    kicking_team: uint8;
+    
+    secs_remaining: uint16;
+    secondary_time: uint16;
+
+    my_team_info: TeamInfo;
+    opponent_team_info: TeamInfo;
+
+    penalized: bool;
+    my_penalty_state: RobotInfo;
+
+    unstiff: bool;
+    kickoff: bool;
+
+    last_packet_ts: int32;
+}
+
+root_type GamecontrolMessage;

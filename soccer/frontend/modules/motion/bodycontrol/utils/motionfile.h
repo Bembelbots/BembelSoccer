@@ -36,7 +36,7 @@ public:
 
     ~MotionFile();
 
-    void step(int currentTime, joints::Actuators &, const joints::Sensors &, 
+    void step(int currentTime, bbipc::Actuators *, const bbipc::Sensors &, 
             float gyroX=0.f, float gyroY=0.f);
 
     void reset();
@@ -84,7 +84,7 @@ private:
     //read from file
     bool loadFromMotionfile(const std::string &filename);
     bool loadStream(std::istream &);
-    bool calculateInterpolationParams(const joints::Sensors &);
+    bool calculateInterpolationParams(const bbipc::Sensors &);
 
     joints::Cubic<joints::pos::Old> applyTransition(const joints::pos::Old &start, 
                                         const joints::pos::Old &target, 

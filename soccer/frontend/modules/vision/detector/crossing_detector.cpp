@@ -470,7 +470,7 @@ float CrossingDetector::getAngleOfIntersectionRCS(Coord line1_P1, Coord line1_P2
     // LOG_DEBUG<<"m1 is "<<m1;
     float m2 = (line2_P2.y - line2_P1.y) / (line2_P2.x - line2_P1.x);
     // LOG_DEBUG<<"m2 is "<<m2;
-    float angle_between_lines = atan(fabs((m2 - m1) / (1 + m1 * m2))); // in radians
+    float angle_between_lines = atan(std::abs((m2 - m1) / (1 + m1 * m2))); // in radians
     // LOG_DEBUG<<"(m2-m1) is "<<(m2-m1);
     // LOG_DEBUG<<"(1+m1*m2)is "<<(1+m1*m2);
     // LOG_DEBUG<<"angle_between_lines is "<<angle_between_lines;

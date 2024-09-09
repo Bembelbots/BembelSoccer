@@ -16,9 +16,7 @@ public:
         if (sitDone)
             return MOTION_STABLE;
 
-        auto &sensors{bb->sensors.get()};
-        auto &actuators{bb->actuators.get()};
-        sitDone = sit(sensors.data(), actuators.data());
+        sitDone = sit(bb->sensors, *bb->actuators);
 
         return MOTION_UNSTABLE;
     }

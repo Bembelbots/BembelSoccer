@@ -1,3 +1,4 @@
+#include <boost/asio/ip/address.hpp>
 #include <csignal>
 #include <cstddef>
 
@@ -16,7 +17,7 @@
 #include <framework/util/getenv.h>
 #include <framework/util/buildinfo.hpp>
 
-using boost::asio::ip::address_v4;
+using boost::asio::ip::address;
 using boost::asio::ip::tcp;
 using boost::asio::local::stream_protocol;
 using namespace std::chrono_literals;
@@ -77,7 +78,7 @@ int main(int argc, char **argv) {
 
     if (vm.count("tcp") || vm.count("docker")) {
         // use TCP socket
-        tcp::endpoint tcp_ep(address_v4::loopback(), 10000);
+        tcp::endpoint tcp_ep(boost::asio::ip::address_v4::loopback(), 10000);
 
         if (vm.count("docker")) {
             // use docker environment variables
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
             jsassert(!lola_port.empty()) << "set LOLA_PORT environment variable for docker mode!";
             jsassert(!sim_host.empty()) << "set SIMULATOR_HOST environment variable for docker mode!";
             int port = std::stoi(lola_port);
-            tcp_ep = tcp::endpoint(address_v4::from_string(sim_host), port);
+            tcp_ep = tcp::endpoint(address::from_string(sim_host), port);
             
         } else if (vm.count("endpoint")) {
             // parse TCP endpoint
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
                 // IP:PORT specified
                 std::string ip{ep_string.substr(0, i)};
                 int port{std::stoi(ep_string.substr(i + 1))};
-                tcp_ep = tcp::endpoint(address_v4::from_string(ip), port);
+                tcp_ep = tcp::endpoint(address::from_string(ip), port);
             }
         }
 

@@ -1,3 +1,2 @@
 REM TODO placeholder
-
-touch .build.env
+call >> .build.env

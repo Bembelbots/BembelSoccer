@@ -1,0 +1,6 @@
+QGroupBox#nao_title[nao_selected=true] {
+    border:1px solid rgb(9, 100, 125);
+    border-radius: 2px;
+    margin-top: 17px;
+    padding: 2px;
+}

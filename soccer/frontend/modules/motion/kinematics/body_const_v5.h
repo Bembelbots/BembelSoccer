@@ -1,6 +1,7 @@
 #include <Eigen/Core>
 
 #include "body_chain.h"
+#include "lola_names_generated.h"
 #define _USE_MATH_DEFINES
 
 
@@ -81,12 +82,12 @@ namespace bodyConstV5
     static const DHParameter DH_HEAD {0.f, 0.f, 0.f, M_PI_2, true};
 
     BodyChain lLeg{ {DH_L_HIP, DH_L_HIP_YAW_PITCH, DH_L_HIP_ROLL, DH_L_HIP_PITCH, DH_L_KNEE_PITCH, DH_L_ANKLE_PITCH, DH_L_ANKLE_ROLL, DH_FOOT}, 
-                    {0, lHipYawPitchPositionSensor, lHipRollPositionSensor, lHipPitchPositionSensor, lKneePitchPositionSensor, lAnklePitchPositionSensor, lAnkleRollPositionSensor, 0} };
+                    {0, int(JointNames::LHipYawPitch), int(JointNames::LHipRoll), int(JointNames::LHipPitch), int(JointNames::LKneePitch), int(JointNames::LAnklePitch), int(JointNames::LAnkleRoll), 0} };
 
     BodyChain rLeg{ {DH_R_HIP, DH_R_HIP_YAW_PITCH, DH_R_HIP_ROLL, DH_R_HIP_PITCH, DH_R_KNEE_PITCH, DH_R_ANKLE_PITCH, DH_R_ANKLE_ROLL, DH_FOOT}, 
-                    {0, lHipYawPitchPositionSensor, rHipRollPositionSensor, rHipPitchPositionSensor, rKneePitchPositionSensor, rAnklePitchPositionSensor, rAnkleRollPositionSensor, 0} };
+                    {0, int(JointNames::LHipYawPitch), int(JointNames::RHipRoll), int(JointNames::RHipPitch), int(JointNames::RKneePitch), int(JointNames::RAnklePitch), int(JointNames::RAnkleRoll), 0} };
 
     BodyChain head{ {DH_CHEST, DH_NECK, DH_HEAD},
-                    {0, headYawPositionSensor, headPitchPositionSensor} };
+                    {0, int(JointNames::HeadYaw), int(JointNames::HeadPitch)} };
 
 }

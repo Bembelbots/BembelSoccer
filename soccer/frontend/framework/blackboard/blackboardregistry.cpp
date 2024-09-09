@@ -4,7 +4,7 @@
 #include "../logger/logger.h"
 #include "../util/assert.h"
 
-BlackboardStorage& BlackboardRegistry::GetBlackboards() {
+BlackboardStorage &BlackboardRegistry::GetBlackboards() {
     static BlackboardStorage storage;
     return storage;
 }
@@ -28,13 +28,12 @@ void BlackboardRegistry::unsubscribe(BlackboardBase &instance) {
     GetBlackboards().erase(&instance);
 }
 
-
-BlackboardBase* BlackboardRegistry::getBlackboardInstance(std::string_view identifier) {
-    for (auto *i: GetBlackboards()) {
+BlackboardBase *BlackboardRegistry::getBlackboardInstance(std::string_view identifier) {
+    // cppcheck-suppress constVariable
+    for (auto *i : GetBlackboards()) {
         // cppcheck-suppress useStlAlgorithm
-        if (identifier == i->getBlackboardName()) {
-            return (i);
-        }
+        if (identifier == i->getBlackboardName())
+            return i;
     }
     return nullptr;
 }

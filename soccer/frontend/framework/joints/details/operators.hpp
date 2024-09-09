@@ -1,9 +1,12 @@
 #pragma once
 
+#include "lola_names_generated.h"
 #include "mask.h"
 
 #include <cmath>
 #include <type_traits>
+
+#include <representations/flatbuffers/types/lola_names.h>
 
 namespace joints {
 namespace details {
@@ -20,46 +23,52 @@ using EnableJoint = std::enable_if_t<EnableJointOperators<Joint>, T>;
 
 template<Mask M, typename LoopBody>
 inline void each(LoopBody body) {
-    for (joint_id i = JOINTS_BEGIN; i < JOINTS_END; i++) { // cppcheck-suppress postfixOperator
+    for (JointNames i : bbapi::EnumValuesJointNames()) {
         if (any(idToMask(i) & M)) {
             body(i);
         }
     }
 }
 
-template<class J>
-EnableJoint<J> &operator+=(J &j1, const J &j2) {
-    J::each([&](joint_id i) { j1[i] += j2[i]; });
+template<class J1, class J2>
+EnableJoint<J1> &operator+=(J1 &j1, const J2 &j2) {
+    j2.each([&](JointNames i) {
+        if (j1.contains(i))
+            j1[i] += j2[i];
+    });
     return j1;
 }
 
-template<class J>
-EnableJoint<J> &operator-=(J &j1, const J &j2) {
-    J::each([&](joint_id i) { j1[i] -= j2[i]; });
+template<class J1, class J2>
+EnableJoint<J1> &operator-=(J1 &j1, const J2 &j2) {
+    j2.each([&](JointNames i) {
+        if (j1.contains(i))
+            j1[i] -= j2[i];
+    });
     return j1;
 }
 
 template<class J>
 EnableJoint<J> &operator+=(J &j, float s) {
-    J::each([&](joint_id i) { j[i] += s; });
+    J::each([&](JointNames i) { j[i] += s; });
     return j;
 }
 
 template<class J>
 EnableJoint<J> &operator-=(J &j, float s) {
-    J::each([&](joint_id i) { j[i] -= s; });
+    J::each([&](JointNames i) { j[i] -= s; });
     return j;
 }
 
 template<class J>
 EnableJoint<J> &operator*=(J &j, float s) {
-    J::each([&](joint_id i) { j[i] *= s; });
+    J::each([&](JointNames i) { j[i] *= s; });
     return j;
 }
 
 template<class J>
 EnableJoint<J> &operator/=(J &j, float s) {
-    J::each([&](joint_id i) { j[i] /= s; });
+    J::each([&](JointNames i) { j[i] /= s; });
     return j;
 }
 
@@ -102,7 +111,7 @@ EnableJoint<J> operator/(const J &j, float s) {
 template<class J>
 EnableJoint<J, bool> operator==(const J &j1, const J &j2) {
     bool eq = true;
-    J::each([&](joint_id i) { eq &= (j1[i] == j2[i]); });
+    J::each([&](JointNames i) { eq &= (j1[i] == j2[i]); });
     return eq;
 }
 
@@ -114,14 +123,14 @@ EnableJoint<J, bool> operator!=(const J &j1, const J &j2) {
 template<class J>
 EnableJoint<J, bool> operator<(const J &j1, const J &j2) {
     bool cond = true;
-    J::each([&](joint_id i) { cond &= (j1[i] < j2[i]); });
+    J::each([&](JointNames i) { cond &= (j1[i] < j2[i]); });
     return cond;
 }
 
 template<class J>
 EnableJoint<J, bool> operator<=(const J &j1, const J &j2) {
     bool cond = true;
-    J::each([&](joint_id i) { cond &= (j1[i] <= j2[i]); });
+    J::each([&](JointNames i) { cond &= (j1[i] <= j2[i]); });
     return cond;
 }
 
@@ -138,14 +147,14 @@ EnableJoint<J, bool> operator>=(const J &j1, const J &j2) {
 template<class J>
 EnableJoint<J, bool> operator<(const J &j, float f) {
     bool cond = true;
-    J::each([&](joint_id i) { cond &= (j[i] < f); });
+    J::each([&](JointNames i) { cond &= (j[i] < f); });
     return cond;
 }
 
 template<class J>
 EnableJoint<J, bool> operator<=(const J &j, float f) {
     bool cond = true;
-    J::each([&](joint_id i) { cond &= (j[i] < f); });
+    J::each([&](JointNames i) { cond &= (j[i] < f); });
     return cond;
 }
 
@@ -160,9 +169,9 @@ EnableJoint<J, bool> operator>=(const J &j, float f) {
 }
 
 template<class J>
-EnableJoint<J, bool> feq(const J &j1, const J &j2, float epsilon) {
+EnableJoint<J, bool> feq(const J &j1, const J &j2, float epsilon = 1e-5) {
     bool eq = true;
-    J::each([&](joint_id i) { eq &= fabsf(j1[i] - j2[i]) < epsilon; });
+    J::each([&](JointNames i) { eq &= std::abs(j1[i] - j2[i]) < epsilon; });
     return eq;
 }
 

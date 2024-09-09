@@ -1,0 +1,9 @@
+namespace bbapi;
+
+table WhistleCommand {}
+
+table WhistleRecordOnly {}
+
+table WhistleStart {}
+
+table WhistleStop {}

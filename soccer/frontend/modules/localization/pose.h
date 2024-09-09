@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/rt/endpoints/input.h"
+#include "gamecontrol_generated.h"
 #include "particlefilter.h"
 
 #include <framework/rt/module.h>
@@ -8,9 +10,7 @@
 #include <representations/blackboards/settings.h>
 #include <representations/motion/body_state.h>
 #include <representations/vision/visiondefinitions.h>
-#include <representations/spl/spl.h>
 #include <representations/worldmodel/definitions.h>
-#include <representations/blackboards/gamecontrol.h>
 #include <representations/localization/locamessage.h>
 #include <representations/flatbuffers/flatbuffers.h>
 
@@ -28,13 +28,13 @@ public:
 
 private:
     rt::Context<SettingsBlackboard> settings;
-    rt::Context<PlayingField> _playingfield;
+    rt::Context<PlayingField> playingfield;
     rt::Input<BodyState> body;
-    rt::Input<Snapshot<GamecontrolBlackboard>> _gamecontrol;
+    rt::Input<bbapi::GamecontrolMessageT, rt::Listen> gamecontrol;
     rt::Input<VisionResultVec, rt::Require> visionResults;
     rt::Output<bbapi::LocalizationMessageT, rt::OutputFlag> locamessage;
 
-    std::shared_ptr<PoseBlackboard> _poseBlackboard;
+    std::shared_ptr<PoseBlackboard> poseBlackboard;
     std::shared_ptr<HypothesesGenerator> locaHypoGenerator;
     
     //ParticleFilter

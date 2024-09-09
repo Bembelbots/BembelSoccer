@@ -9,7 +9,7 @@ namespace  rt {
 struct LogDataAny {};
 
 struct LogDataInterface {
-    ~LogDataInterface() = default;
+    virtual ~LogDataInterface() = default;
     virtual TypeID id() = 0;
     virtual std::string name() = 0;
     virtual bool is_serializeable() = 0;

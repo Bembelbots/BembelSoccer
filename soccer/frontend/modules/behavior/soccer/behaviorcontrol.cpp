@@ -3,6 +3,9 @@
 #include <framework/util/assert.h>
 #include <representations/blackboards/settings.h>
 #include <framework/benchmark/benchmarking.h>
+#include "gc_enums_generated.h"
+#include "representations/bembelbots/constants.h"
+#include <modules/whistle/commands.h>
 
 using BEHAVE_PRIVATE::BehaviorControl;
 
@@ -14,11 +17,13 @@ void BehaviorControl::connect(rt::Linker &link) {
 
     link(settings);
     link(worldBb);
-    link(gamecontrolBb);
+    link(gamecontrol);
+    link(gameState);
     link(body);
     link(playingField);
     link(whistle);
 
+    //    link(dynamicRole);
     link(bodyCmds);
     link(whistleCmds);
     link(teamcommCmds);
@@ -76,28 +81,31 @@ void BehaviorControl::run(microTime time_ms) {
 void BehaviorControl::updateBehavior() {
     auto lock = _myBehavior->scopedLock();
     Behavior *bh = _myBehavior.get();
-    auto &gc = *gamecontrolBb;
     auto &world = *worldBb;
 
     // reset body motion output var
     bh->bm_type = Motion::NONE;
+    bh->hm_pitch = CONST::initial_pitch;
 
     bh->stiffnessCmd = StiffnessCommand::NONE;
 
     bh->playingfield = playingField;
 
     // GAME-CONTROLLER (read-only)
-    bh->game_player_color = gc->fieldPlayerColor;
-    bh->game_goalie_color = gc->goalkeeperColor;
-    bh->game_state = gc->gameState;
-    bh->game_state_led = gc->gameState;
-    for (const auto &e: whistle.fetch())
+    if (gamecontrol->myTeamInfo) {
+        bh->game_player_color = gamecontrol->myTeamInfo->fieldPlayerColor;
+        bh->game_goalie_color = gamecontrol->myTeamInfo->goalkeeperColor;
+    }
+    bh->game_state = gamecontrol->gameState;
+    bh->game_state_led = gamecontrol->gameState;
+    bh->game_state_real = gameState->gameStateReal;
+    for (const auto &e : whistle.fetch())
         bh->whistle |= e.found;
-    bh->has_kickoff = gc->kickoff;
-    bh->set_play = gc->setPlay;
-    bh->is_unstiff = gc->unstiff;
-    bh->is_penalized = (gc->penalty != Penalty::NONE);
-    bh->game_phase_penalty_shootout = settings->isPenaltyShootout;
+    bh->has_kickoff = gamecontrol->kickoff;
+    bh->set_play = gamecontrol->setPlay;
+    bh->is_unstiff = gamecontrol->unstiff;
+    bh->is_penalized = gamecontrol->penalized;
+    bh->game_phase_penalty_shootout = (gamecontrol->gamePhase == bbapi::GamePhase::PENALTYSHOOT);
     bh->role_current = settings->role;
     // testing related (reset to false)
     if (bh->test_start) {
@@ -141,6 +149,15 @@ void BehaviorControl::updateBehavior() {
     bh->fallen_side = body->fallenSide;
     bh->fallen = body->qns[IS_FALLEN];
 
+    /* if (!fall_control && ( */
+    /*         (game_state == GameState::FINISHED) || */
+    /*         (game_state == GameState::INITIAL)  || */
+    /*         is_penalized)) */
+    /* { */
+    /*     fallen = false; */
+    /*     fallen_side = FallenSide::NONE; */
+    /* } */
+
     bh->nao_bumper_left = body->qns[LEFT_BUMPER_PRESSED];
     bh->nao_bumper_right = body->qns[RIGHT_BUMPER_PRESSED];
 
@@ -156,9 +173,9 @@ void BehaviorControl::updateBehavior() {
 
     bh->motion_head_yaw_pos = body->lastHeadYaw;
     bh->motion_head_pitch_pos = body->lastHeadPitch;
-    RobotRole myRole = RobotRole::NONE;
 
     bh->robots = world->allRobots;
+    //dynamicRole->value = (int)myRole;
 
     bh->bodyqns = body->qns;
 }
@@ -166,26 +183,26 @@ void BehaviorControl::updateBehavior() {
 void BehaviorControl::applyLEDs() {
     Behavior *bh = _myBehavior.get();
 
-    bodyCmds.enqueue<SetLeds>(LED::CHEST, int(bh->chest_color));
-    bodyCmds.enqueue<SetLeds>(LED::LEFT_FOOT, int(bh->left_foot_color));
-    bodyCmds.enqueue<SetLeds>(LED::RIGHT_FOOT, int(bh->right_foot_color));
+    bodyCmds.enqueue<SetLeds>(::LED::CHEST, int(bh->chest_color));
+    bodyCmds.enqueue<SetLeds>(::LED::LEFT_FOOT, int(bh->left_foot_color));
+    bodyCmds.enqueue<SetLeds>(::LED::RIGHT_FOOT, int(bh->right_foot_color));
 
     if (bh->ball_age < 30) {
-        bodyCmds.enqueue<SetLeds>(LED::LEFT_EYE, 0x00FF00);
-        bodyCmds.enqueue<SetLeds>(LED::BRAIN_LEFT, 0xFFFFFF);
+        bodyCmds.enqueue<SetLeds>(::LED::LEFT_EYE, 0x00FF00);
+        bodyCmds.enqueue<SetLeds>(::LED::SKULL_LEFT, 0xFFFFFF);
     } else {
-        bodyCmds.enqueue<SetLeds>(LED::LEFT_EYE, 0xFF0000);
-        bodyCmds.enqueue<SetLeds>(LED::BRAIN_LEFT, 0x00000);
+        bodyCmds.enqueue<SetLeds>(::LED::LEFT_EYE, 0xFF0000);
+        bodyCmds.enqueue<SetLeds>(::LED::SKULL_LEFT, 0x00000);
     }
     if (bh->is_nearest_to_ball) {
-        bodyCmds.enqueue<SetLeds>(LED::RIGHT_EYE_LEFT, 0xFFFF00);
-        bodyCmds.enqueue<SetLeds>(LED::BRAIN_RIGHT, 0xFFFFFF);
+        bodyCmds.enqueue<SetLeds>(::LED::RIGHT_EYE_LEFT, 0xFFFF00);
+        bodyCmds.enqueue<SetLeds>(::LED::SKULL_RIGHT, 0xFFFFFF);
     } else {
-        bodyCmds.enqueue<SetLeds>(LED::RIGHT_EYE, 0xFF0000);
-        bodyCmds.enqueue<SetLeds>(LED::BRAIN_RIGHT, 0x00000);
+        bodyCmds.enqueue<SetLeds>(::LED::RIGHT_EYE, 0xFF0000);
+        bodyCmds.enqueue<SetLeds>(::LED::SKULL_RIGHT, 0x00000);
     }
     if (bh->_num_detected_robots > 0) {
-        bodyCmds.enqueue<SetLeds>(LED::RIGHT_EYE_RIGHT, 0x00FFFF);
+        bodyCmds.enqueue<SetLeds>(::LED::RIGHT_EYE_RIGHT, 0x00FFFF);
     }
 }
 
@@ -193,10 +210,9 @@ void BehaviorControl::applyMotion() {
     Behavior *bh = _myBehavior.get();
 
     bodyCmds.enqueue<SetHeadMotion>(bh->hm_type);
-    if(bh->hm_type == HeadMotionType::BALL){
-        bodyCmds.enqueue<SetHeadLookRCS>(bh->hm_pos);
+    if (bh->hm_type == HeadMotionType::BALL || bh->hm_type == HeadMotionType::FREE) {
+        bodyCmds.enqueue<SetHeadLookRCS>(bh->hm_pos, bh->hm_pitch);
     }
-    
 
     if (bh->stiffnessCmd != StiffnessCommand::NONE) {
         bodyCmds.enqueue<SetStiffness>(bh->stiffnessCmd);
@@ -213,7 +229,14 @@ void BehaviorControl::applyMotion() {
             switch (bh->walk_action) {
                 case WalkAction::TIPPLE:
                     bodyCmds.enqueue<Tipple>();
+                    /* body->enqueueCommand<TippleMotion>(walkV); */
                     break;
+                /* case WalkAction::INSTEP_KICK_LEFT: */
+                /*     body->enqueueCommand<InstepKickLeftMotion>(); */
+                /*     break; */
+                /* case WalkAction::INSTEP_KICK_RIGHT: */
+                /*     body->enqueueCommand<InstepKickRightMotion>(); */
+                /*     break; */
                 default:
                     bodyCmds.enqueue<WalkMotion>(walkV);
                     break;
@@ -245,9 +268,9 @@ void BehaviorControl::applyMisc() {
 
     START_TIMER("behavior.apply.misc.whistlecmd");
     if (bh->whistle_listen)
-        whistleCmds.enqueue<WhistleStart>();
+        whistleCmds.enqueue<bbapi::WhistleStartT>();
     else
-        whistleCmds.enqueue<WhistleStop>();
+        whistleCmds.enqueue<bbapi::WhistleStopT>();
 
     TeamcommDebugInfo tc;
     tc.role = _myBehavior->role_current;
@@ -257,4 +280,3 @@ void BehaviorControl::applyMisc() {
 }
 
 // vim: set ts=4 sw=4 sts=4 expandtab:
-

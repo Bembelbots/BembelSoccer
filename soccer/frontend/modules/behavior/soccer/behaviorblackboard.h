@@ -2,15 +2,14 @@
 
 #include "definitions.h"
 
+#include "gc_enums_generated.h"
 #include "representations/playingfield/playingfield.h"
 #include "representations/worldmodel/definitions.h"
 #include "standalone/blackboardbase_shim.h"
 
 #include <representations/motion/body_state.h>
 #include <representations/bembelbots/types.h>
-#include <representations/spl/spl.h>
 #include <representations/teamcomm/types.h>
-#include <representations/whistle/commands.h>
 
 #include <string>
 
@@ -29,15 +28,16 @@ public:
     MAKE_VAR(std::string, cabsl_states);
     
     //// GAME CONTROLLER VARIABLES
-    MAKE_VAR(GameState, game_state);
-    MAKE_VAR(GameState, game_state_led);
-    MAKE_VAR(SetPlay, set_play);
+    MAKE_VAR(bbapi::GameState, game_state);
+    MAKE_VAR(bbapi::GameState, game_state_led);
+    MAKE_VAR(bbapi::GameState, game_state_real);
+    MAKE_VAR(bbapi::SetPlay, set_play);
     MAKE_VAR(bool, whistle);
     MAKE_VAR(bool, whistle_listen);
     MAKE_VAR(bool, has_kickoff);
 
-    MAKE_VAR(TeamColor, game_player_color);
-    MAKE_VAR(TeamColor, game_goalie_color);
+    MAKE_VAR(bbapi::TeamColor, game_player_color);
+    MAKE_VAR(bbapi::TeamColor, game_goalie_color);
     MAKE_VAR(bool, is_unstiff);
     MAKE_VAR(bool, is_sitting);
     MAKE_VAR(bool, is_penalized);
@@ -140,6 +140,7 @@ public:
     MAKE_VAR(HeadMotionType, hm_type);
     MAKE_VAR(Coord, hm_pos);
     MAKE_VAR(int, hm_dir);
+    MAKE_VAR(float, hm_pitch);
 
     // output arm position control
     MAKE_VAR(ArmsPosition, arms);

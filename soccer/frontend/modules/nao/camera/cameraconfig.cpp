@@ -7,10 +7,11 @@
 #include <representations/bembelbots/constants.h>
 
 std::vector<std::vector<int>> CameraConfig::parameters(2, std::vector<int>(34, 0));
-std::shared_ptr<NaoCameras> CameraConfig::cameras = nullptr;
 
-void CameraConfig::setCameras(std::shared_ptr<NaoCameras> _cameras) {
-    cameras = std::move(_cameras);
+CameraConfig::get_cameras_fn CameraConfig::getCameras = nullptr;
+
+void CameraConfig::setCameras(get_cameras_fn fn) {
+    getCameras = fn;
 }
 
 int CameraConfig::getParameter(const int camera,
@@ -35,6 +36,8 @@ void CameraConfig::setParameter(const int camera,
 
     parameters[camera][option] = value;
     LOG_INFO << "Camera " << camera << " set " << option << " to " << value;
+
+    auto* cameras = getCameras();
 
     if (!cameras->initialized()) {
         LOG_WARN << "ImageProvider: cameras not ready for parameter change";

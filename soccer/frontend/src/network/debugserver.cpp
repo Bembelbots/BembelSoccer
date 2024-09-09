@@ -12,24 +12,25 @@
 
 #include <framework/logger/logger.h>
 #include <boost/thread.hpp>
+#include <string_view>
 #include <thread>
 #include <framework/blackboard/blackboard.h>
 #include <framework/blackboard/blackboardregistry.h>
 #include <representations/blackboards/settings.h>
 #include <framework/math/directed_coord.h>
 #include <representations/camera/camera.h>
+#include <representations/bembelbots/constants.h>
 #include <framework/image/rgb.h>
 #include "debugheader.h"
 
-using boost::asio::ip::udp;
-using boost::asio::ip::tcp;
 using boost::asio::ip::address_v4;
+using boost::asio::ip::tcp;
+using boost::asio::ip::udp;
 using boost::property_tree::ptree;
 using boost::property_tree::read_json;
 using boost::property_tree::write_json;
 
-DebugServer::DebugServer()
-    : _lastAlive(0) {
+DebugServer::DebugServer() : _lastAlive(0) {
     //TODO: move network io control to better place
     _io = std::make_shared<NetworkIO>();
     Network::set_network_io(_io);
@@ -38,7 +39,6 @@ DebugServer::DebugServer()
     _netUcast = std::make_unique<UDP>(Network::RANDOM, &DebugServer::recv, this);
     _netTCP = std::make_unique<TCPServer>(Network::DEBUG, false, 0, 10485760ULL);
 }
-
 
 DebugServer::~DebugServer() {
     _netBcast.reset();
@@ -58,7 +58,6 @@ void DebugServer::connect(rt::Linker &link) {
 }
 
 void DebugServer::setup() {
-
 }
 
 void DebugServer::stop() {
@@ -78,8 +77,7 @@ void DebugServer::process() {
         std::this_thread::sleep_for(std::chrono::microseconds(us));
 }
 
-void DebugServer::recv(const char *msg, const size_t &bytes_recvd,
-                        const udp::endpoint &sender) {
+void DebugServer::recv(const char *msg, const size_t &bytes_recvd, const udp::endpoint &sender) {
     bool connected = isSending();
     bool authorized = false;
     if (connected && _debug_client && (sender == *_debug_client)) {
@@ -144,7 +142,6 @@ void DebugServer::recv(const char *msg, const size_t &bytes_recvd,
                 p.pop_front();
                 float a = p.front().second.get_value<float>();
                 // parsing json arrays with boost ptree still sucks
-                
 
                 //auto pose = reinterpret_cast<PoseBlackboard*>(BlackboardRegistry::getBlackboardInstance("PoseData"));
                 //if (pose) {
@@ -161,15 +158,14 @@ void DebugServer::recv(const char *msg, const size_t &bytes_recvd,
             bool saveOk = config->saveSettings();
 
             std::string sayMsg = "Saved blackboards.";
-            if(!saveOk) {
+            if (!saveOk) {
                 sayMsg = "Error saving blackboards.";
             }
 
             LOG_INFO << sayMsg;
             LOG_SAY << sayMsg;
 
-            std::string answer =
-                (saveOk) ? "save_blackboards_ok" : "save_blackboards_error";
+            std::string answer = (saveOk) ? "save_blackboards_ok" : "save_blackboards_error";
             debugV2.put("msg_type", answer);
             response.push_back(std::make_pair("debugv2", debugV2));
             send(response, sender);
@@ -177,7 +173,7 @@ void DebugServer::recv(const char *msg, const size_t &bytes_recvd,
     } catch (std::exception &e) {
         LOG_ERROR << "error: " << e.what();
         //DEBUG
-        LOG_ERROR << "blackboardio: recv";
+        LOG_ERROR << "DebugServer: invalid message in received: " << std::string_view(msg, bytes_recvd);
         //END DEBUG
     } catch (...) {
         LOG_ERROR << "handle_receive_from: unknown error";
@@ -234,10 +230,9 @@ void DebugServer::broadcastSymbolNames() {
     send(pt);
 }
 
-void DebugServer::updateDebugSymbols(ptree &pt,
-                                    const bool &change_value) const {
+void DebugServer::updateDebugSymbols(ptree &pt, const bool &change_value) const {
 
-    for (auto &v: pt.get_child("debugv2")) {
+    for (auto &v : pt.get_child("debugv2")) {
 
         std::string bbName = v.first.data();
 
@@ -251,9 +246,9 @@ void DebugServer::updateDebugSymbols(ptree &pt,
 
             if (bbName == name) {
 
-                std::vector<std::pair<std::string, std::string> > pairs;
+                std::vector<std::pair<std::string, std::string>> pairs;
 
-                for (auto &v2: pt.get_child("debugv2." + bbName)) {
+                for (auto &v2 : pt.get_child("debugv2." + bbName)) {
                     std::string key = v2.first.data();
                     std::string value = v2.second.data();
                     std::pair<std::string, std::string> n(key, value);
@@ -261,7 +256,7 @@ void DebugServer::updateDebugSymbols(ptree &pt,
                 }
 
                 if (change_value) {
-                    for (auto &kv: pairs) {
+                    for (auto &kv : pairs) {
                         if (bb->_set_funcs.find(kv.first) != bb->_set_funcs.end()) {
                             LOG_INFO << "Setting var: " << kv.first << " to: " << kv.second;
                             bb->_set_funcs.at(kv.first)(kv.second);
@@ -270,63 +265,59 @@ void DebugServer::updateDebugSymbols(ptree &pt,
                 } else {
                     bb->updateDebugSymbols(pairs);
                 }
-
             }
         }
     }
 }
 
 void DebugServer::broadcastImages() {
-    for(auto &img_context : images.fetch()) {
-        /*
-        if(!img_context.results.empty()) {
-            LOG_DEBUG << "----";
-            for(auto vr : img_context.results) {
-                LOG_DEBUG << vr;
-            }
+    auto imgs{images.fetch()};
+
+    // skip if no debug client is connected or previous image has not been sent completely
+    if (!isSending() || _netTCP->is_busy())
+        return;
+
+    // only keep latest top & bottom image, in case there are multiple in queue
+    std::array<VisionImageProcessed *, 2> latest{nullptr};
+    for (auto &i : imgs) {
+        int idx{i.camera};
+        auto &l = latest.at(idx);
+        if (l) {
+            if (l->timestamp < i.timestamp)
+                latest[idx] = &i;
+        } else {
+            latest[idx] = &i;
         }
-        */
+    }
 
-        //LOG_INFO << "received image " << img_context.id;
-
-        if (!isSending()) {
-            img_context.release();
+    for (auto &img_context : latest) {
+        if (!img_context)
             continue;
-        }
 
-        //if (ic.fullRes)
-        //    buf = encodeImage(ic.img.toRGB(), ic.codec);
-        //else
-        auto camera = img_context.image.camera;
-        auto codec = ImageCodec::JPG;
-        
-        //auto image = encodeImage(img_context.image.toRGB(LQ_WIDTH, LQ_HEIGHT), codec);
-        auto image = encodeImage(img_context.image.toRGB(), codec);
-        size_t vrSize = img_context.results.size() * sizeof(VisionResult);
+        auto &image{*(img_context->jpeg)};
+        size_t vrSize = img_context->results->size() * sizeof(VisionResult);
         size_t size = image.size() + sizeof(DebugImageHeader) + vrSize;
-        
+
         char *data = new char[size];
         DebugImageHeader *dbgHdr = reinterpret_cast<DebugImageHeader *>(data);
         dbgHdr->version = DEBUG_IMAGE_VERSION;
-        dbgHdr->camera = camera;
-        dbgHdr->codec = codec;
-        dbgHdr->timestamp = img_context.image.timestamp;
+        dbgHdr->camera = img_context->camera;
+        dbgHdr->codec = ImageCodec::JPG;
+        dbgHdr->timestamp = img_context->timestamp;
         dbgHdr->imageSize = image.size();
-        dbgHdr->vrSize = vrSize; 
-        
+        dbgHdr->vrSize = vrSize;
+
         char *offset = data;
-        
+
         std::memcpy(offset, DEBUG_IMAGE_MAGIC, sizeof(dbgHdr->magic));
         offset += sizeof(DebugImageHeader);
 
-        std::memcpy(offset, img_context.results.data(), dbgHdr->vrSize);
+        std::memcpy(offset, img_context->results->data(), dbgHdr->vrSize);
         offset += dbgHdr->vrSize;
 
         std::memcpy(offset, image.data(), dbgHdr->imageSize);
 
-        img_context.release();
-
-        sendIMG(data, size);
+        _netTCP->write(data, size);
         delete[] data;
     }
 }
@@ -335,8 +326,7 @@ std::vector<bool> DebugServer::getDebugValues() {
     std::vector<bool> values;
 
     auto &blackboards_list = BlackboardRegistry::GetBlackboards();
-    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin();
-            it != blackboards_list.end(); ++it) {
+    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin(); it != blackboards_list.end(); ++it) {
         auto lock = (*it)->scopedLock();
         std::vector<bool> tmpValues = (*it)->getDebugValues();
         values.insert(values.end(), tmpValues.begin(), tmpValues.end());
@@ -352,15 +342,13 @@ std::vector<std::string> DebugServer::getDebugSymbols() {
     std::vector<std::string> debugSymbols;
 
     auto &blackboards_list = BlackboardRegistry::GetBlackboards();
-    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin();
-            it != blackboards_list.end(); ++it) {
+    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin(); it != blackboards_list.end(); ++it) {
         auto lock = (*it)->scopedLock();
         std::vector<std::string> tmpSymbols = (*it)->getDebugSymbols();
         // std::cout << "got " << tmpSymbols.size() << " symbols from " <<
         // (*it)->getBlackboardName() << std::endl;
         for (size_t i = 0; i < tmpSymbols.size(); ++i)
-            debugSymbols.push_back((*it)->getBlackboardName() + std::string(".") +
-                                   tmpSymbols[i]);
+            debugSymbols.push_back((*it)->getBlackboardName() + std::string(".") + tmpSymbols[i]);
     }
 
     // return everything
@@ -373,8 +361,7 @@ void DebugServer::setDebugSymbol(const std::string &name, const bool &value) {
     std::string key = name.substr(pos + 1);
 
     auto &blackboards_list = BlackboardRegistry::GetBlackboards();
-    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin();
-            it != blackboards_list.end(); ++it) {
+    for (std::set<BlackboardBase *>::iterator it = blackboards_list.begin(); it != blackboards_list.end(); ++it) {
         if (board == (*it)->getBlackboardName()) {
             auto lock = (*it)->scopedLock();
             (*it)->setDebugSymbol(key, value);
@@ -393,16 +380,13 @@ bool DebugServer::isSending() {
     }
 }
 
-
 void DebugServer::send(const boost::property_tree::ptree &pt) {
     if (_debug_client) {
         send(pt, *_debug_client);
     }
 }
 
-
-void DebugServer::send(const boost::property_tree::ptree &pt,
-                        const udp::endpoint &to) {
+void DebugServer::send(const boost::property_tree::ptree &pt, const udp::endpoint &to) {
     std::ostringstream buf;
     try {
         write_json(buf, pt, false);
@@ -414,18 +398,15 @@ void DebugServer::send(const boost::property_tree::ptree &pt,
     send(buf.str(), to);
 }
 
-
 void DebugServer::send(const std::string &s) {
     if (_debug_client) {
         send(s, *_debug_client);
     }
 }
 
-
 void DebugServer::send(const std::string &s, const udp::endpoint &to) {
     send(s.c_str(), s.size(), to);
 }
-
 
 void DebugServer::send(const char *message, const size_t &size) {
     if (_debug_client) {
@@ -433,21 +414,9 @@ void DebugServer::send(const char *message, const size_t &size) {
     }
 }
 
-
-void DebugServer::send(const char *message, const size_t &size,
-                        const udp::endpoint &to) {
+void DebugServer::send(const char *message, const size_t &size, const udp::endpoint &to) {
     _netUcast->sendTo(message, size, to);
 }
-
-
-void DebugServer::sendIMG(const char *message, const size_t &size) {
-    if (!isSending()) {
-        return;
-    }
-
-    _netTCP->write(message, size);
-}
-
 
 void DebugServer::connectClient(const boost::asio::ip::udp::endpoint &client) {
     if (_debug_client && (*_debug_client != client)) {
@@ -463,7 +432,6 @@ void DebugServer::connectClient(const boost::asio::ip::udp::endpoint &client) {
     _lastAlive = getTimestampMs();
 }
 
-
 void DebugServer::disconnectClient() {
     if (!_debug_client) {
         return;
@@ -473,24 +441,5 @@ void DebugServer::disconnectClient() {
     _debug_client = nullptr;
     _lastAlive = 0;
 }
-
-DebugServer::buf_t DebugServer::encodeImage(const RgbImage &img, const ImageCodec &codec) {
-    std::string ext;
-    std::vector<int> parms;
-
-    if (codec == ImageCodec::PNG) {
-        ext = ".png";
-        parms = {cv::IMWRITE_PNG_COMPRESSION, PNG_LOW_COMPRESSION_LVL};
-    } else {
-        ext = ".jpg";
-        parms = {cv::IMWRITE_JPEG_QUALITY, JPEG_BAD_QUALITY};
-    }
-
-    buf_t buf;
-    cv::imencode(ext, img.mat(), buf, parms);
-
-    return buf;
-}
-
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

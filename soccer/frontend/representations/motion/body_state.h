@@ -80,15 +80,13 @@ public:
     uint32_t tick;
     int64_t lola_timestamp; //< recv. timestamp from lola backend, used to match camera images
 
-    camPose bCamPose, tCamPose;
+    CamPose bCamPose, tCamPose;
 
-    Eigen::Vector3f accel;
-    Eigen::Vector3f gyro;
     Eigen::Vector3f bodyAngles;
 
     DirectedCoord odometry;
 
-    joints::Sensors sensors; //< raw sensor values
+    bbipc::Sensors sensors; //< raw sensor values
 
     FallenSide fallenSide = FallenSide::NONE;
 

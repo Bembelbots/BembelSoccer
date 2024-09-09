@@ -64,7 +64,7 @@ SERIALIZE(bool, {
 });
 
 SERIALIZE(int, {
-        return {key, str(value)};
+    return {key, str(value)};
 });
 
 SERIALIZE(float, {

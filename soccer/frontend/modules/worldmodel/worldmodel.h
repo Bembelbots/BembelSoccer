@@ -1,6 +1,8 @@
 #pragma once
 #include "ballmotionfilter.h"
 #include "ballfilter.h"
+#include "framework/rt/endpoints/input.h"
+#include "gamecontrol_generated.h"
 #include "teamball.h"
 
 #include <framework/rt/module.h>
@@ -11,7 +13,6 @@
 #include <representations/blackboards/worldmodel.h>
 #include <representations/teamcomm/teammessage.h>
 #include <representations/motion/body_state.h>
-#include <representations/blackboards/gamecontrol.h>
 #include <representations/flatbuffers/flatbuffers.h>
 
 #include <array>
@@ -66,7 +67,8 @@ private:
     rt::Input<bbapi::LocalizationMessageT, rt::Require> loca;
     rt::Input<VisionResultVec, rt::Require> visionResults;
     rt::Input<BodyState> body;
-    rt::Input<Snapshot<GamecontrolBlackboard>> gamecontrol;
+    rt::Input<bbapi::GamecontrolMessageT, rt::Listen> gamecontrol;
+    //rt::Input<bbapi::GamecontrolMessageT, rt::NonBlocking> gamecontrol;
 
     void updateRobotPose();
     void updateTeamBall();

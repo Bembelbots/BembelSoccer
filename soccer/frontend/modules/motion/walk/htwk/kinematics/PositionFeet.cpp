@@ -11,7 +11,7 @@ std::pair<point_3d, point_3d> PositionFeet::calcPosOfFeet(float torsoAngleX,
         float torsoAngleY) {
 	float rb = torsoAngleY;
 	float ra = torsoAngleX;
-	float sum = std::fabs(ra) + std::fabs(rb);
+	float sum = std::abs(ra) + std::abs(rb);
 	if (sum > M_PI_2) {
 		float d = M_PI_2 / sum;
 		rb *= d;

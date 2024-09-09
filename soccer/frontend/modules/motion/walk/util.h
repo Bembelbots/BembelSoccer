@@ -1,7 +1,7 @@
 #pragma  once
+#include "representations/flatbuffers/types/sensors.h"
 #include <cmath>
 #include <initializer_list>
-#include "htwk/utils/fsr.h"
 
 float parabolicReturn(float f) {
     if (f < 0.25f) {
@@ -35,12 +35,12 @@ float linearParameterChange(float in, float target, float delta) {
 }
 
 // positive is left foot
-float calcSupportFoot(FSR fsr_current, FSR &fsr_max) {
+float calcSupportFoot(bbipc::FSR fsr_current, bbipc::FSR &fsr_max) {
     static constexpr float max_pressure = 5.0f;
-    static const FSR weights{.left = {0.8f, 0.3f, 0.8f, 0.3f}, .right = {-0.3f, -0.8f, -0.3f, -0.8f}};
+    static const bbipc::FSR weights{{0.8f, 0.3f, 0.8f, 0.3f}, {-0.3f, -0.8f, -0.3f, -0.8f}};
     float total = 0;
     float weighted = 0;
-    for (Foot* f : {&fsr_current.left, &fsr_current.right}) {
+    for (bbipc::FSRFoot* f : {&fsr_current.left, &fsr_current.right}) {
         for (float* v : {&f->fl, &f->fr, &f->rl, &f->rr}) {
             *v = std::min(max_pressure, *v);
             float* m = (float*)&fsr_max + ((float*)v - (float*)&fsr_current);

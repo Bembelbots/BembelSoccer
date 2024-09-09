@@ -1,0 +1,20 @@
+include "../types/robot_config.fbs";
+include "../types/sensors.fbs";
+
+namespace bbapi;
+
+table BembelIpcSensorMessage {
+    robot_name: RobotName;
+    tick: uint32;
+    timestamp: uint64;
+    lola_timestamp: int64;
+
+    connected: bool;
+    simulator: bool;
+    backend_version: uint8;
+
+    robot_config: RobotConfig;
+    sensors: Sensors (native_inline);
+}
+
+root_type BembelIpcSensorMessage;

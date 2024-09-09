@@ -1,0 +1,8 @@
+namespace bbapi;
+
+table RefereeGestureMessage {
+    left_arm_up: bool;
+    right_arm_up: bool;
+}
+
+root_type RefereeGestureMessage;

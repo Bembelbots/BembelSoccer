@@ -99,6 +99,7 @@ void SVGBody::addPolyline(
 }
 
 void SVGBody::addText(float x, float y, std::string_view text, std::string_view color, std::string_view id) {
+    y = -y;
     std::stringstream ss;
     ss << std::fixed << std::setprecision(0);
 

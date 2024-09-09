@@ -58,7 +58,7 @@ void WorldModel::process() {
     robot->timestamp = now;
     
     // set my active state to my penalty mode
-    robot->active = ((*gamecontrol)->penalty == Penalty::NONE);
+    robot->active = gamecontrol->penalized;
 
     useVisionResults(robot->pos);
 
@@ -176,7 +176,7 @@ void WorldModel::runGoaliballMotionFilter(Coord ball_rcs, Ball &ballWcs){
 }
 
 void WorldModel::useVisionResults(const DirectedCoord &myPos){
-    if ((*gamecontrol)->penalty != Penalty::NONE) 
+    if (gamecontrol->penalized)
         return;
 
     Ball *ball = robot->ball;

@@ -8,18 +8,17 @@
 #include <framework/common/platform.h>
 #include <framework/network/udp.h>
 #include <representations/motion/body_state.h>
-#include <representations/spl/SPLStandardMessage.h>
-#include <representations/spl/RoboCupGameControlData.h>
 #include <representations/blackboards/worldmodel.h>
-#include <representations/blackboards/gamecontrol.h>
 #include <representations/blackboards/settings.h>
 #include <representations/teamcomm/commands.h>
 #include <representations/teamcomm/teammessage.h>
 #include <representations/teamcomm/types.h>
 #include <representations/debugserver/debugstate.h>
-#include <representations/whistle/whistleresult.h>
 
+#include <gamecontrol_generated.h>
 #include <team_message_generated.h>
+#include <whistle_message_generated.h>
+#include <referee_gesture_message_generated.h>
 
 class Robot;
 class Ball;
@@ -30,9 +29,9 @@ public:
     static constexpr int numPlayers{MAX_NUM_PLAYERS};
 
     // interval tuning
-    static constexpr TimestampMs defaultBcastIntervalMs{20000}; ///< default interval
-    static constexpr TimestampMs fastInterval{2500};            ///< something happend of immediate importance
-    static constexpr TimestampMs mediumInterval{5000};          ///< not critical, but teammates should know about it
+    static constexpr TimestampMs defaultBcastIntervalMs{15000}; ///< default interval
+    static constexpr TimestampMs fastInterval{1500};            ///< something happend of immediate importance
+    static constexpr TimestampMs mediumInterval{2500};          ///< not critical, but teammates should know about it
     static constexpr TimestampMs immediateInterval{0};          ///< not critical, but teammates should know about it
     
     static constexpr float       thresholdMovement{0.3f};       ///< bot moved at least this distance (unit: m)
@@ -50,13 +49,15 @@ private:
 
     std::shared_ptr<UDP> net;
     rt::Context<SettingsBlackboard> settings;
-    rt::Input<Snapshot<GamecontrolBlackboard>> gc_message;
+    rt::Command<TeamcommCommand, rt::Handle> cmds;
+    rt::Input<bbapi::GamecontrolMessageT, rt::Listen> gamecontrol;
     rt::Input<Snapshot<WorldModelBlackboard>> world;
     rt::Input<BodyState> body;
-    rt::Output<TeamMessage, rt::Event> team_message;
-    rt::Command<TeamcommCommand, rt::Handle> cmds;
     rt::Input<DebugState> debugState;
-    rt::Input<WhistleResult, rt::Snoop> whistle;
+    rt::Input<bbapi::WhistleMessageT, rt::Snoop> whistle;
+    rt::Input<bbapi::RefereeGestureMessageT, rt::Snoop> refereeGesture;
+    rt::Output<TeamMessage, rt::Event> team_message;
+    rt::Output<bbapi::TeamMessageT, rt::Event> team_message_log;
 
     bbapi::TeamMessageT tm;
     std::atomic<int> msgCount{0}; // number of all sent & received messages, in case GC is not working
@@ -64,6 +65,9 @@ private:
 
     bool isActive(const int &id);
     
+    Robot teamMsg2robot(const bbapi::TeamMessageT &msg);
+    Ball  teamMsg2ball(const int &sender, const bbapi::pos &pos, const uint8_t &conf, const int &age = 0);
+
     // adjust message interval based on worldmodel changes
     float calcInterval(const Robot &r, const Ball &b);
 

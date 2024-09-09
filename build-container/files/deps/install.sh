@@ -18,6 +18,7 @@ mkdir /dpkg
 
 cd
 /opt/deps/caffe.sh
+/opt/deps/compilednn.sh
 /opt/deps/flatbuffers.sh
 /opt/deps/msgpack.sh
 /opt/deps/tflite.sh

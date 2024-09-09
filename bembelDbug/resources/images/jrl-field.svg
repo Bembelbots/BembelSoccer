@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="-3675 -2675 7350 5350" >
+<rect x="-3675" y="-2675" width="7350" height="5350" fill="green" />
+<rect id="LEFT" x="-3000" y="-2000" width="6000" height="50" fill="white" />
+<rect id="RIGHT" x="-3000" y="1950" width="6000" height="50" fill="white" />
+<rect id="TOP" x="2950" y="-2000" width="50" height="4000" fill="white" />
+<rect id="BOTTOM" x="-3000" y="-2000" width="50" height="4000" fill="white" />
+<rect id="MIDDLE" x="-25" y="-2000" width="50" height="4000" fill="white" />
+<rect id="OPP_PENALTY" x="1300" y="-1475" width="50" height="2950" fill="white" />
+<rect id="OPP_PENALTY_LEFT" x="1300" y="-1475" width="1700" height="50" fill="white" />
+<rect id="OPP_PENALTY_RIGHT" x="1300" y="1425" width="1700" height="50" fill="white" />
+<rect id="OPP_PENALTY_SHOOTMARK0" x="1575" y="-25" width="100" height="50" fill="white" />
+<rect id="OPP_PENALTY_SHOOTMARK1" x="1600" y="-50" width="50" height="100" fill="white" />
+<rect id="OWN_PENALTY" x="-1350" y="-1475" width="50" height="2950" fill="white" />
+<rect id="OWN_PENALTY_LEFT" x="-3000" y="-1475" width="1700" height="50" fill="white" />
+<rect id="OWN_PENALTY_RIGHT" x="-3000" y="1425" width="1700" height="50" fill="white" />
+<rect id="OWN_PENALTY_SHOOTMARK0" x="-1675" y="-25" width="100" height="50" fill="white" />
+<rect id="OWN_PENALTY_SHOOTMARK1" x="-1650" y="-50" width="50" height="100" fill="white" />
+<rect id="OPP_GOALBOX" x="2350" y="-1125" width="50" height="2250" fill="white" />
+<rect id="OPP_GOALBOX_LEFT" x="2350" y="-1125" width="650" height="50" fill="white" />
+<rect id="OPP_GOALBOX_RIGHT" x="2350" y="1075" width="650" height="50" fill="white" />
+<rect id="OWN_GOALBOX" x="-2400" y="-1125" width="50" height="2250" fill="white" />
+<rect id="OWN_GOALBOX_LEFT" x="-3000" y="-1125" width="650" height="50" fill="white" />
+<rect id="OWN_GOALBOX_RIGHT" x="-3000" y="1075" width="650" height="50" fill="white" />
+<rect id="OPP_GOALBACK_BACK" x="3450" y="-825" width="50" height="1650" fill="white" />
+<rect id="OPP_GOALBACK_LEFT" x="2950" y="-825" width="550" height="50" fill="white" />
+<rect id="OPP_GOALBACK_RIGHT" x="2950" y="775" width="550" height="50" fill="white" />
+<rect id="OWN_GOALBACK_BACK" x="-3500" y="-825" width="50" height="1650" fill="white" />
+<rect id="OWN_GOALBACK_LEFT" x="-3500" y="-825" width="550" height="50" fill="white" />
+<rect id="OWN_GOALBACK_RIGHT" x="-3500" y="775" width="550" height="50" fill="white" />
+<rect id="KICKOFF_SPOT" x="-50" y="-25" width="100" height="50" fill="white" />
+<circle id="CENTER_CIRCLE" cx="0" cy="-0" r="575" stroke="white" stroke-width="50" fill="none"/>
+<circle id="OPP_LEFT" cx="3000" cy="-800" r="50" stroke="lightgray" stroke-width="0" fill="lightgray"/>
+<circle id="OPP_RIGHT" cx="3000" cy="800" r="50" stroke="lightgray" stroke-width="0" fill="lightgray"/>
+<circle id="OWN_LEFT" cx="-3000" cy="-800" r="50" stroke="lightgray" stroke-width="0" fill="lightgray"/>
+<circle id="OWN_RIGHT" cx="-3000" cy="800" r="50" stroke="lightgray" stroke-width="0" fill="lightgray"/>
+</svg>

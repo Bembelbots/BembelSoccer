@@ -1,18 +1,18 @@
 #pragma once
 #include <Eigen/Core>
 
-struct camPose
+struct CamPose
 {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Eigen::Vector3f v, r;
 
-    camPose() = default;
+    CamPose() = default;
 
-    bool operator==(const camPose& other) const {
+    bool operator==(const CamPose& other) const {
         return v == other.v && r == other.r;
     }
 
-    bool operator!=(const camPose& other) const {
+    bool operator!=(const CamPose& other) const {
         return !(*this == other);
     }
 };

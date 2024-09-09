@@ -1,9 +1,9 @@
 #pragma once
 
+#include "lola_names_generated.h"
+#include <representations/flatbuffers/types/sensors.h>
 #include <vector>
 #include <initializer_list>
-
-#include <libbembelbots/bembelbots.h>
 
 #include <framework/util/assert.h>
 #include <framework/joints/joints.hpp>
@@ -18,16 +18,16 @@ public:
     bool trippleClick = false;
     bool doubleClick = false;
     
-    Button(const std::initializer_list<LBBSensorIds> buttonSensors, int timeBetweenClicks)
+    Button(const std::initializer_list<bbapi::TouchNames> buttonSensors, int timeBetweenClicks)
             : buttonIds(buttonSensors)
             , maxTimeBetweenClicks(timeBetweenClicks) {
         jsassert(!buttonIds.empty());
     }
     
-    Button(const LBBSensorIds buttonSensors, int timeBetweenClicks) :
+    Button(const bbapi::TouchNames buttonSensors, int timeBetweenClicks) :
             Button({buttonSensors}, timeBetweenClicks) {}
 
-    void update(const joints::Sensors &sensors, int timems) {
+    void update(const bbipc::Sensors &sensors, int timems) {
         isDown = isPressedDown(sensors);
         isUp   = !isDown;
 
@@ -71,7 +71,7 @@ public:
 
 private:
 
-    std::vector<LBBSensorIds> buttonIds;
+    std::vector<bbapi::TouchNames> buttonIds;
 
     int maxTimeBetweenClicks = 500;
 
@@ -81,10 +81,10 @@ private:
     int clickCnt = 0;
     int lastClickTime = 0;
 
-    bool isPressedDown(const joints::Sensors &sensors) {
+    bool isPressedDown(const bbipc::Sensors &sensors) {
         bool sensorActive = false;
-        for (const LBBSensorIds &buttonId : buttonIds) {
-            sensorActive |= (sensors[buttonId] > 0);
+        for (const bbapi::TouchNames &buttonId : buttonIds) {
+            sensorActive |= (sensors.touch.arr()[int(buttonId)] > 0);
         }
         return sensorActive;
     }

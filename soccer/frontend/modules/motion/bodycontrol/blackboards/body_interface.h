@@ -54,7 +54,7 @@ public:
 private:
     DirectedCoord odoResetPos;
 
-    float getMaxSensor(const BodyState &body, const std::vector<int> &sensors);
+    float getMaxSensor(const bbipc::JointArray &ja, const std::vector<bbapi::JointNames> &sensors);
 };
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

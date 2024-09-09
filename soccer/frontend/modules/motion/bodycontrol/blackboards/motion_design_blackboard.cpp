@@ -1,12 +1,11 @@
 #include "motion_design_blackboard.h"
+#include <representations/bembelbots/constants.h>
 
-MotionDesignBlackboard::MotionDesignBlackboard() 
-    : Blackboard(blackboardName) {
+MotionDesignBlackboard::MotionDesignBlackboard() : Blackboard(blackboardName) {
 
-    // Actuators    
-    INIT_VAR_RW(durationInitialPose, 250, "");
-    INIT_VAR_RW(durationStabilize, 250, "");
-    INIT_VAR_RW(durationFinalStand, 1000, "");
+    // Actuators
+    INIT_VAR_RW(head_pitch, CONST::initial_pitch, "");
+    INIT_VAR_RW(head_yaw, CONST::initial_yaw, "");
     INIT_VAR_RW(l_shoulder_pitch, 1.64f, "");
     INIT_VAR_RW(l_shoulder_roll, 0.0f, "");
     INIT_VAR_RW(l_elbow_yaw, 0.0f, "");
@@ -21,7 +20,6 @@ MotionDesignBlackboard::MotionDesignBlackboard()
     INIT_VAR_RW(r_shoulder_roll, 0.03f, "");
     INIT_VAR_RW(r_elbow_yaw, -1.6f, "");
     INIT_VAR_RW(r_elbow_roll, -0.3f, "");
-    //INIT_VAR_RW(r_hip_yaw_pitch, 0.0f, "");
     INIT_VAR_RW(r_hip_roll, 0.0f, "");
     INIT_VAR_RW(r_hip_pitch, 0.0f, "");
     INIT_VAR_RW(r_knee_pitch, 0.0f, "");
@@ -30,6 +28,8 @@ MotionDesignBlackboard::MotionDesignBlackboard()
 
     // Stiffness
     float initStiffness = 0.7f;
+    INIT_VAR_RW(headPitchStiffness, initStiffness, "");
+    INIT_VAR_RW(headYawStiffness, initStiffness, "");
     INIT_VAR_RW(lShoulderPitchStiffness, initStiffness, "");
     INIT_VAR_RW(lShoulderRollStiffness, initStiffness, "");
     INIT_VAR_RW(lElbowYawStiffness, initStiffness, "");
@@ -54,12 +54,10 @@ MotionDesignBlackboard::MotionDesignBlackboard()
 
     INIT_VAR_RW(isPlayAllKeyframes, false, "");
     INIT_VAR_RW(isKeyframeInterpolationComplete, false, "");
-    
-    INIT_VAR_RW(reReadActuators, true, "");
-    INIT_VAR_RW(isSetStiffness, false, "");
-    INIT_VAR_RW(stiffness, initStiffness, "");
 
-    INIT_VAR_RW(kick_active, true, "");
+    INIT_VAR_RW(reReadActuators, true, "");
+    INIT_VAR_RW(jointsMoved, false, "");
+    INIT_VAR_RW(stiffness, initStiffness, "");
 
     INIT_VAR_RW(time, 1000, "");
 

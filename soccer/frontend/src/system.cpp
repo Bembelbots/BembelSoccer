@@ -1,10 +1,5 @@
 #include "system.h"
 
-#include <framework/logger/logger.h>
-#include <framework/logger/backends.h>
-#include <libbembelbots/bembelbots.h>
-#include <iostream>
-
 // linux-platform dependent
 #include <sys/file.h>  // flock
 #include <unistd.h>    // fork()
@@ -12,35 +7,33 @@
 #include <sys/time.h>
 #include <errno.h>
 
+#include <glog/logging.h>
+
 #include <representations/blackboards/settings.h>
 
+#include <framework/logger/logger.h>
+#include <framework/logger/backends.h>
 #include <framework/util/clock_simulator.h>
 #include <framework/util/stacktrace.h>
 #include <framework/util/buildinfo.hpp>
 
-#include <glog/logging.h>
-
-struct Instance
+struct LockFile
 {
-    Instance(int use_instance)
-        : instance(use_instance) {
-        std::stringstream tin;
-        tin << "/tmp/bembelbots-" << instance;
-        lock_fd = open(tin.str().c_str(), O_CREAT, 0600);
+    LockFile() {
+        lock_fd = open("/run/lock/bembelbots-frontend.lock", O_CREAT, 0600);
     }
 
     bool is_unique() {
         return !(lock_fd == -1 || flock(lock_fd, LOCK_EX | LOCK_NB) == -1);
     }
 
-    ~Instance() {
+    ~LockFile() {
         if (lock_fd != -1) {
             close(lock_fd);
         }
     }
 
 private:
-    int instance;
     int lock_fd = -1;
 };
 
@@ -93,7 +86,7 @@ static void register_handlers()
     std::set_terminate(terminate_handler);
 }
 
-int Engine::run(int use_instance, bool docker, System *system){
+int Engine::run(bool docker, System *system){
     return EXIT_SUCCESS;
 }
 
@@ -115,21 +108,20 @@ bool System::init(int argc, char *argv[]) {
 
 int System::run() {
     // use this instance for the backend
-    int use_instance = cli["instance"].as<int>();
-    LOG_INFO << "connect to JRLSoccer Backend with instance " << use_instance;
+    LOG_INFO << "connect to JRLSoccer Backend";
 
     LOG_INFO << "-----------------------------------------------------";
     LOG_INFO << "Starting the frontend!";
     LOG_INFO << "-----------------------------------------------------";
 
-    Instance inst(use_instance);
+    LockFile lock;
 
-    if (!inst.is_unique()) {
+    if (!lock.is_unique()) {
         LOG_INFO << "There is already an instance of this process!";
         return EXIT_FAILURE;
     }
 
-    return engine->run(use_instance, docker, this);
+    return engine->run(docker, this);
 }
 
 void System::stop() {
@@ -165,13 +157,7 @@ bool System::init_cli(int argc, char *argv[]) {
     boost::program_options::options_description desc("Allowed options");
     desc.add_options()
     ("help,h", "produce help message.")
-    ("stepwise,S", "run framework in stepwise mode")
-    ("instance,i", boost::program_options::value<int>()->default_value(naoqiBackendPort),
-    "connect to a backend with the given instance.")
-    ("simulatorHost,s", boost::program_options::value<std::string>(), "Host ip v4 address of the Simulator")
     ("docker", "simulation mode inside docker container. Reads additional options from environment variables.")
-    ("data,g", boost::program_options::value<std::string>(),
-    "used ground truth directory.")
     ("buildinfo", "print buildinfo");
 
     boost::program_options::store(
@@ -179,7 +165,7 @@ bool System::init_cli(int argc, char *argv[]) {
     boost::program_options::notify(cli);
 
     if (cli.count("help")) {
-        std::cout << "Team Bembelbots, JRL Soccer Framework V2." << std::endl;
+        std::cout << "Team Bembelbots, JRL Soccer Framework V3." << std::endl;
         std::cout << desc << std::endl;
         return false;
     }

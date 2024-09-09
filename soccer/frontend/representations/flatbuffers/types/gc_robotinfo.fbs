@@ -1,0 +1,10 @@
+include "gc_enums.fbs"; 
+
+namespace bbapi;
+
+table RobotInfo {
+    penalty: Penalty;
+    secs_until_unpenalized: uint8;
+}
+
+root_type RobotInfo;

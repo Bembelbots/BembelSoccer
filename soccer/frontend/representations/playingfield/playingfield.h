@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include "../bembelbots/types.h"
-#include "../spl/spl.h"
-#include <framework/math/directed_coord.h>
 #include <array>
 #include <vector>
 #include <random>
 
+#include "../bembelbots/types.h"
+#include <gc_enums_generated.h>
+#include <framework/math/directed_coord.h>
 #include <framework/util/enum/serializable_enum.h>
 
 /* This enums are used in jslinematching, so do not change them, if do not know what you do! */
@@ -99,7 +99,8 @@ SERIALIZABLE_ENUM_CLASS(Cross,
     (T_OWN_GOALBACK_LEFT),
     (T_OWN_GOALBACK_RIGHT),
     (L_OWN_GOALBACK_LEFT),
-    (L_OWN_GOALBACK_RIGHT)
+    (L_OWN_GOALBACK_RIGHT),
+    (UNKNOWN)
 );
 static const size_t CrossMAX = static_cast<size_t>(Cross::L_OWN_GOALBACK_RIGHT) + 1;
 
@@ -131,7 +132,7 @@ struct LandmarkOrientation {
 };
 
 struct LandmarkCross {
-    Cross name; // enum "NAME" of the cross
+    Cross name{Cross::UNKNOWN}; // enum "NAME" of the cross
     float wcs_x; // wcs pose in m
     float wcs_y;
     float wcs_alpha; // wcs angle in rad
@@ -308,7 +309,7 @@ public:
             int type=-1);
 
 
-    std::vector<DirectedCoord> kick_off_position(SetPlay set_play);
+    std::vector<DirectedCoord> kick_off_position(bbapi::SetPlay set_play);
 
     bool ball_outside_centercircle(Coord ball);
 

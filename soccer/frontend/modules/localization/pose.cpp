@@ -1,5 +1,6 @@
 #include "pose.h"
 
+#include "gc_enums_generated.h"
 #include "poseblackboard.h"
 #include "hypothesesgenerator.h"
 
@@ -16,6 +17,7 @@
 
 #include <bitset>
 
+#include <unordered_map>
 #include <vector>
 
 /// constant for sleeps in poseestimate (ms)
@@ -33,30 +35,30 @@ Pose::Pose() :
     _isPenalizedCounter(0),
     _lostGroundContactCounter(0) {
     // get dedicated pose blackboard pointer
-    _poseBlackboard = std::make_shared<PoseBlackboard>();
+    poseBlackboard = std::make_shared<PoseBlackboard>();
 }
 
 void Pose::connect(rt::Linker &link) {
     link.name = "localization";
     link(settings);
-    link(_playingfield);
+    link(playingfield);
     link(body);
-    link(_gamecontrol);
+    link(gamecontrol);
     link(visionResults);
     link(locamessage);
 }
 
 void Pose::setup() {
-    locaHypoGenerator = std::make_shared<HypothesesGenerator>(_playingfield);   
+    locaHypoGenerator = std::make_shared<HypothesesGenerator>(playingfield);   
 
     // CHANGE THIS TO REPLACE THE LOCALIZATION !!!
-    ParticleFilter::Settings locaConf(_playingfield);
+    ParticleFilter::Settings locaConf(playingfield);
 
     sensor_angle_offset = 0.0f;
     locaConf.robot_id = settings->id;
-    locaConf.has_kickoff = (*_gamecontrol)->kickoff;
+    locaConf.has_kickoff = gamecontrol->kickoff;
     locaConf.role = settings->role;
-    locaConf.pf= _playingfield;
+    locaConf.pf= playingfield;
 
     // we have to set all the configuration for the filter here!
     //
@@ -76,7 +78,7 @@ void Pose::setup() {
 }
 
 void Pose::process() {
-    auto lock = _poseBlackboard->scopedLock();
+    auto lock = poseBlackboard->scopedLock();
     //GET ODOMETRY;use als sensors additional to walk output
     DirectedCoord dc = body->odometry;
     dc.angle = Rad{body->bodyAngles(2) - sensor_angle_offset};
@@ -96,19 +98,28 @@ void Pose::process() {
     //UPDATE LOCA
     loca->update(visionResults, dc,hypos);
    
+    // update role for penalty shootout
+    if (settings->role == RobotRole::PENALTYKICKER)
+        locaEmitEvent(ParticleFilter::EV_ROLE_PENALTYKICKER);
+    else if (settings->role == RobotRole::PENALTYGOALIE)
+        locaEmitEvent(ParticleFilter::EV_ROLE_PENALTYGOALIE);
+
     //HAS GAMESTATE CHANGED
-    GameState gs = (*_gamecontrol)->gameState;
-    static auto lastState = GameState::FINISHED;
+    bbapi::GameState gs = gamecontrol->gameState;
+    static auto lastState = bbapi::GameState::FINISHED;
     if (lastState != gs) {
         using l = ParticleFilter;
-        static const l::tLocalizationEvent ev[] = {
-            l::EV_STATE_INITIAL,
-            l::EV_STATE_READY,
-            l::EV_STATE_SET,
-            l::EV_STATE_PLAYING,
-            l::EV_STATE_FINISHED
+        using bbapi::GameState;
+        static const std::unordered_map<GameState, l::tLocalizationEvent> ev{
+            {GameState::INITIAL, l::EV_STATE_INITIAL},
+            {GameState::STANDBY, l::EV_STATE_STANDBY},
+            {GameState::READY, l::EV_STATE_READY},
+            {GameState::SET, l::EV_STATE_SET},
+            {GameState::PLAYING, l::EV_STATE_PLAYING},
+            {GameState::FINISHED, l::EV_STATE_FINISHED},
         };
-        locaEmitEvent(ev[int(gs)]);
+        if (ev.count(gs) > 0)
+            locaEmitEvent(ev.at(gs));
     }
     lastState = gs;
 
@@ -144,9 +155,8 @@ void Pose::process() {
         }
     }
 
-    bool isPenalized = (Penalty::NONE != (*_gamecontrol)->penalty);
     // CHECK IF PENALIZED
-    if (isPenalized) {
+    if (gamecontrol->penalized) {
         ++_isPenalizedCounter;
         if (!_lastStateOfIsPenalized) {
             if (_isPenalizedCounter * POSEESTIMATE_WORKER_SLEEP_INTERVAL_MS > 1000) {
@@ -163,8 +173,8 @@ void Pose::process() {
     }
 
     // push hypotheses/particles to blackboard for debugging
-    if (DEBUG_ON(_poseBlackboard->Particles)) {
-        _poseBlackboard->Particles = loca->getHypothesesVector();
+    if (DEBUG_ON(poseBlackboard->Particles)) {
+        poseBlackboard->Particles = loca->getHypothesesVector();
     }
     /*if (DEBUG_ON(_poseBlackboard->Hypotheses)) {
         _poseBlackboard->Hypotheses = loca->debuggingPos;
@@ -174,12 +184,12 @@ void Pose::process() {
     bbapi::LocalizationMessageT message;
     message.pose        = loca->get_position();
     message.confidence  = loca->get_confidence();
-    message.gtTimestamp = _poseBlackboard->gtTimestamp;
+    message.gtTimestamp = poseBlackboard->gtTimestamp;
     message.gtPosition  = {};
 
-    if ((_poseBlackboard->gtTimestamp > 0)
-            && ((getTimestampMs() - _poseBlackboard->gtTimestamp) < 5000)) {
-        message.gtPosition = _poseBlackboard->gtPosition;
+    if ((poseBlackboard->gtTimestamp > 0)
+            && ((getTimestampMs() - poseBlackboard->gtTimestamp) < 5000)) {
+        message.gtPosition = poseBlackboard->gtPosition;
     }
     
     *locamessage = message;
@@ -197,10 +207,10 @@ Robot Pose::getRobotPoseWcs() {
     _robotWcs.confidence = loca->get_confidence();
 
     // add ground truth data, if available and not too old.
-    _robotWcs.GTtimestamp = _poseBlackboard->gtTimestamp;
-    if ((_poseBlackboard->gtTimestamp > 0)
-            && ((getTimestampMs() - _poseBlackboard->gtTimestamp) < 5000)) {
-        _robotWcs.GTpos = _poseBlackboard->gtPosition;
+    _robotWcs.GTtimestamp = poseBlackboard->gtTimestamp;
+    if ((poseBlackboard->gtTimestamp > 0)
+            && ((getTimestampMs() - poseBlackboard->gtTimestamp) < 5000)) {
+        _robotWcs.GTpos = poseBlackboard->gtPosition;
     }
 
     _robotWcs.fallen = body->qns[IS_FALLEN] || body->qns[IS_STANDING_UP];

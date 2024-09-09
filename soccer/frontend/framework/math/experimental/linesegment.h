@@ -23,7 +23,7 @@ public:
         return Line<T>::fromDirectionAndPoint(Vector2<T>{-dir.y, dir.x}, getMidpoint());
     }
 
-    double distanceToPoint(const Vector2<T> &v) { return fabs(getDirection().det(v)); }
+    double distanceToPoint(const Vector2<T> &v) { return std::abs(getDirection().det(v)); }
 
     double distanceToLineSegment(const LineSegment<T> &lineSegment) {
         return distanceToPoint(lineSegment.getMidpoint());

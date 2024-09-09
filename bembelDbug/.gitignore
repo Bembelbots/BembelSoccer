@@ -1,0 +1,11 @@
+bembelDbug.creator.user
+__pycache__/
+src/ui/*
+!src/ui/__init__.py
+
+config/my_config.json
+Makefile.local
+Pipfile
+Pipfile.lock
+lastSyncLog.txt
+.venv

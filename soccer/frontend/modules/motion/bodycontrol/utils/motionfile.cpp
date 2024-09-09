@@ -34,7 +34,7 @@ int MotionFile::getDuration() const {
     return maxDuration;
 }
 
-void MotionFile::step(int currentTime, joints::Actuators &actuators, const joints::Sensors &sensors, float gyroX, float gyroY) {
+void MotionFile::step(int currentTime, bbipc::Actuators *actuators, const bbipc::Sensors &sensors, float gyroX, float gyroY) {
     _currentTick = currentTime;
 
     if (_currentTick > _nextPoseReached && !calculateInterpolationParams(sensors)) {
@@ -60,7 +60,6 @@ void MotionFile::step(int currentTime, joints::Actuators &actuators, const joint
                 .lElbowYaw = 0, // LEFT_ELBOW_YAW
                 .lElbowRoll = 0, // LEFT_ELBOW_ROLL
                 .lWristYaw = 0,
-                .lHand = 0,
 
                 .hipYawPitch = 0, // HIP_YAW_PITCH
 
@@ -70,15 +69,6 @@ void MotionFile::step(int currentTime, joints::Actuators &actuators, const joint
                 .lAnklePitch = combinedBalancer.getAnklePitch(), // LEFT_ANKEL_PITCH
                 .lAnkleRoll = combinedBalancer.getAnkleRoll(), // LEFT_ANKEL_ROLL
 
-                .rShoulderPitch = combinedBalancer.getShoulderPitch(), // RIGHT_SHOULDER_PITCH
-                .rShoulderRoll = combinedBalancer.getShoulderRollR(), // RIGHT_SHOULDER_ROLL
-
-                .rElbowYaw = 0, // RIGHT_ELBOW_YAW
-                .rElbowRoll = 0, // RIGHT_ELBOW_ROLL
-
-                .rWristYaw = 0,
-                .rHand = 0,
-
                 // 12 left out due to double HIP_YAW_PITCH
 
                 .rHipRoll = 0, // RIGHT_HIP_ROLL
@@ -86,6 +76,17 @@ void MotionFile::step(int currentTime, joints::Actuators &actuators, const joint
                 .rKneePitch = 0, // RIGHT_KNEE_PITCH
                 .rAnklePitch = combinedBalancer.getAnklePitch(), // RIGHT_ANKEL_PITCH
                 .rAnkleRoll = combinedBalancer.getAnkleRoll(), // RIGHT_ANKEL_ROLL
+
+                .rShoulderPitch = combinedBalancer.getShoulderPitch(), // RIGHT_SHOULDER_PITCH
+                .rShoulderRoll = combinedBalancer.getShoulderRollR(), // RIGHT_SHOULDER_ROLL
+
+                .rElbowYaw = 0, // RIGHT_ELBOW_YAW
+                .rElbowRoll = 0, // RIGHT_ELBOW_ROLL
+
+                .rWristYaw = 0,
+
+                .lHand = 0,
+                .rHand = 0
             });
 
         nextTick += ankles;
@@ -197,7 +198,6 @@ bool MotionFile::loadStream(std::istream &ss) {
                 .lElbowYaw = values[4], // LEFT_ELBOW_YAW
                 .lElbowRoll = values[5], // LEFT_ELBOW_ROLL
                 .lWristYaw = 0,
-                .lHand = 0,
 
                 .hipYawPitch = values[6], // HIP_YAW_PITCH
 
@@ -207,15 +207,6 @@ bool MotionFile::loadStream(std::istream &ss) {
                 .lAnklePitch = values[10], // LEFT_ANKEL_PITCH
                 .lAnkleRoll = values[11], // LEFT_ANKEL_ROLL
 
-                .rShoulderPitch = values[18], // RIGHT_SHOULDER_PITCH
-                .rShoulderRoll = values[19], // RIGHT_SHOULDER_ROLL
-
-                .rElbowYaw = values[20], // RIGHT_ELBOW_YAW
-                .rElbowRoll = values[21], // RIGHT_ELBOW_ROLL
-
-                .rWristYaw = 0,
-                .rHand = 0,
-
                 // 12 left out due to double HIP_YAW_PITCH
 
                 .rHipRoll = values[13], // RIGHT_HIP_ROLL
@@ -223,6 +214,16 @@ bool MotionFile::loadStream(std::istream &ss) {
                 .rKneePitch = values[15], // RIGHT_KNEE_PITCH
                 .rAnklePitch = values[16], // RIGHT_ANKEL_PITCH
                 .rAnkleRoll = values[17], // RIGHT_ANKEL_ROLL
+
+                .rShoulderPitch = values[18], // RIGHT_SHOULDER_PITCH
+                .rShoulderRoll = values[19], // RIGHT_SHOULDER_ROLL
+
+                .rElbowYaw = values[20], // RIGHT_ELBOW_YAW
+                .rElbowRoll = values[21], // RIGHT_ELBOW_ROLL
+                .rWristYaw = 0,
+
+                .lHand = 0,
+                .rHand = 0,
             });
 
             //actuators *= DEG_TO_RAD;
@@ -242,7 +243,7 @@ bool MotionFile::loadStream(std::istream &ss) {
     return valid;
 }
 
-bool MotionFile::calculateInterpolationParams(const joints::Sensors &sensors) {
+bool MotionFile::calculateInterpolationParams(const bbipc::Sensors &sensors) {
     pos::Old prev;
     assert(frames.size() != 0);
 

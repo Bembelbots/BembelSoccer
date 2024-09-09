@@ -2,11 +2,16 @@
 
 #include "datacontainer.h"
 
-#include <functional>
-#include <string>
-#include <vector>
 #include <map>
+#include <vector>
+#include <string>
 #include <sstream>
+#include <functional>
+
+#include <boost/tokenizer.hpp>
+#include <boost/token_functions.hpp>
+
+#include <representations/flatbuffers/types/sensors.h>
 
 typedef std::pair<std::string, std::string> tStringPair;
 typedef std::vector<tStringPair> tStringPairList;
@@ -19,44 +24,42 @@ typedef std::pair<std::string, bool *> tStringBoolPair;
 
 #define MAKE_VAR(t, varname) \
     t varname; \
-    bool varname ## _debug
+    bool varname##_debug
 
-#define _INIT_DEBUGGABLE(varname, val, description) \
-    varname = val
+#define _INIT_DEBUGGABLE(varname, val, description) varname = val
 
 #define INIT_VAR(varname, val, description) \
     _INIT_DEBUGGABLE(varname, val, description); \
-    addVariable(&varname, &varname ## _debug, #varname, description)
-    /* _get_funcs[#varname] = getter_fabric(_varPrefix + "." + #varname, &varname) */
+    addVariable(&varname, &varname##_debug, #varname, description)
+/* _get_funcs[#varname] = getter_fabric(_varPrefix + "." + #varname, &varname) */
 
 #define INIT_VAR_RW(varname, val, description) \
     _INIT_DEBUGGABLE(varname, val, description); \
-    addVariableRW(&varname, &varname ## _debug, #varname, description)
+    addVariableRW(&varname, &varname##_debug, #varname, description)
 
 // macros for enums
 // reinterpret them as ints to avoid base64 encode & setter_fabric issues
 #define INIT_ENUM(varname, val, description) \
     _INIT_DEBUGGABLE(varname, val, description); \
-    addVariable<int>(reinterpret_cast<int *>(&varname), &varname ## _debug, #varname, description)
+    addVariable<int>(reinterpret_cast<int *>(&varname), &varname##_debug, #varname, description)
 
 #define INIT_ENUM_RW(varname, val, description) \
     _INIT_DEBUGGABLE(varname, val, description); \
-    addVariableRW<int>(reinterpret_cast<int *>(&varname), &varname ## _debug, #varname, description)
+    addVariableRW<int>(reinterpret_cast<int *>(&varname), &varname##_debug, #varname, description)
 
 // use for on/off switches (e.g. cam images),
 // does return debug state instead of actual variable in naodebug
 #define INIT_SWITCH(varname, val, description) \
     _INIT_DEBUGGABLE(varname, val, description); \
-    addSwitch(&varname ## _debug, #varname, description)
+    addSwitch(&varname##_debug, #varname, description)
 
 // check if a variable is being debugged by bembelDbug
-#define DEBUG_ON(varname) varname ## _debug
+#define DEBUG_ON(varname) varname##_debug
 
 class BlackboardDataContainer;
 class Introspection {
 
 public:
-
     typedef std::function<void(const std::string &s)> tBBSetFunc;
     typedef std::function<BlackboardDataContainer(void)> tBBGetFunc;
 
@@ -65,7 +68,7 @@ public:
     std::map<std::string, bool *> _debugValues;
     std::map<std::string, tBBSetFunc> _set_funcs;
     std::map<std::string, tBBGetFunc> _get_funcs;
-    
+
     explicit Introspection();
     explicit Introspection(const std::string &varPrefix);
 
@@ -83,7 +86,6 @@ public:
     std::string toJson() const;
 
 protected:
-
     std::string _varPrefix;
 
     void addSwitch(bool *dbg, const std::string &name, const std::string &desc);
@@ -106,18 +108,32 @@ protected:
     // and provides 's', which is den parsed and assigned.
     template<typename T>
     static std::function<void(const std::string &)> setter_fabric(T *target) {
-        return [=](const std::string& s) -> void {
+        return [=](const std::string &s) -> void {
             std::stringstream ss;
             ss << s;
             ss >> *target;
         };
     }
 
+    template<typename T, size_t N>
+    static std::function<void(const std::string &)> setter_fabric(std::array<T, N> *target) {
+        return [=](const std::string &s) -> void {
+            size_t i{0};
+            boost::char_separator<char> sep{";"};
+            boost::tokenizer<boost::char_separator<char>> tok{s, sep};
+            for (const auto &t : tok) {
+                std::stringstream ss;
+                ss << t;
+                ss >> target->at(i);
+                ++i;
+            }
+        };
+    }
+
     // the same pattern for the getter, the fabric returns a 'customized'
     // function, which delivers the containing value as 'string', if being asked for
-    template <typename T>
-    static std::function<BlackboardDataContainer(void)> getter_fabric(
-        const std::string &key, const T *source) {
+    template<typename T>
+    static std::function<BlackboardDataContainer(void)> getter_fabric(const std::string &key, const T *source) {
         return [=](void) -> BlackboardDataContainer { return {key, *source}; };
     }
 };

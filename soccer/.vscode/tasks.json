@@ -1,0 +1,152 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "bembelbots: Simulator",
+            "dependsOn": [
+                "Bembelbots: monitor-sim",
+                "Bembelbots: backend-sim"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "label": "Bembelbots: Find Nao",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": [
+                "./scripts/naolist.py"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "label": "Bembelbots: Sync",
+            "type": "shell",
+            "command": "./scripts/sync_nao_wrapper.sh",
+            "args": [
+                {
+                    "value": "${input:NaoSyncName}",
+                    "quoting": "escape"
+                },
+                {
+                    "value": "${input:NaoSyncOptions}",
+                    "quoting": "escape"
+                }
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Bembelbots: Reconfigure",
+            "command": "rm -rf ${workspaceFolder}/build; cmake --preset v6",
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "type": "cmake",
+            "label": "Bembelbots: CMake Build",
+            "command": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "preset": "${command:cmake.activeBuildPresetName}",
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Bembelbots: Build",
+            "command": "(test -d  ${workspaceFolder}/build/v6 || cmake --preset v6); cmake --build --preset framework",
+            "group": {
+                "kind": "build"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "focus": true
+            }
+        },
+        {
+            "hide": true,
+            "label": "Bembelbots: backend-sim",
+            "type": "shell",
+            "command": "lola-backend --docker",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "group": "bb-sim",
+                "panel": "dedicated",
+                "echo": false,
+                "focus": false
+            }
+        },
+        {
+            "hide": true,
+            "label": "Bembelbots: monitor-sim",
+            "type": "shell",
+            "command": "jrlmonitor --docker",
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": {
+                "group": "bb-sim",
+                "panel": "dedicated",
+                "echo": false,
+                "focus": false
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "NaoSyncName",
+            "description": "Name of the Nao you want to sync to.",
+            "type": "promptString"
+        },
+        {
+            
+            "id": "NaoSyncOptions",
+            "description": "What would you like to sync?",
+            "type": "pickString",
+            "options": [
+                "All",
+                "Frontend",
+                "Calibration",
+                "Backend",
+                "Monitor",
+            ],
+            "default": "Frontend"
+        },
+        /*
+        {
+            "id": "NaoSyncNameList",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "./scripts/naolist.py",
+                "cwd": "${workspaceFolder}",
+                "fieldSeparator": "|",
+                "description": "Name of the Nao you want to sync to."
+            }
+        }
+        */
+    ]
+}

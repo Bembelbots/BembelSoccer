@@ -2,6 +2,7 @@
 #include <framework/logger/logger.h>
 #include <representations/bembelbots/constants.h>
 
+#include "framework/util/assert.h"
 #include "sources/v6videosource.h"
 #include "sources/tcpvideosource.h"
 

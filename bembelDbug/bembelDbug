@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+cd "$(dirname "$(readlink -f "$0")")"
+MAKEFLAGS="-j$(getconf _NPROCESSORS_CONF)" make -s
+
+[ -d ".venv" ] &&  source .venv/bin/activate
+#until python3 src/main.py "$@"; do sleep 1; done
+python3 src/main.py "$@"

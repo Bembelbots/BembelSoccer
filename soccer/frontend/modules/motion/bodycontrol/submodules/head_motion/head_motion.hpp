@@ -1,11 +1,15 @@
 #pragma once
 
+#include <algorithm>
+#include <optional>
+
 #include <bodycontrol/internals/submodule.h>
 #include <representations/bembelbots/constants.h>
 #include <representations/motion/body_commands.h>
 #include <framework/math/utils.h>
+#include <framework/joints/body_v6.h>
+#include <framework/joints/joints.hpp>
 
-#include <optional>
 
 class HeadMotion : public SubModule {
 
@@ -49,19 +53,19 @@ public:
             break;
             case HeadMotionType::BALL:
             case HeadMotionType::FREE: {
-                if(!look_at_angle.has_value()) {
+                if (!look_at_angle.has_value())
                     look_at_angle = 0.f;
-                }
+                if (!look_at_pitch.has_value())
+                    look_at_pitch = CONST::initial_pitch;
+                
                 float yaw_diff = *look_at_angle - yaw_pos;
-                //yaw_pos = 0.0f;
                 yaw_pos += scale(yaw_diff, -max_yaw, max_yaw, -vmax_yaw, vmax_yaw);
 
-                pitch_pos = calc_pitch(yaw_pos);
+                pitch_pos = std::clamp(*look_at_pitch, joints::CONSTRAINTS.at(JointNames::HeadPitch).min, calc_pitch(yaw_pos));
             }
             break;
             case HeadMotionType::NONE:
             default: {
-                //bb->actuators[headPitchPositionActuator] = CONST::initial_pitch;
                 yaw_pos -= scale(yaw_pos, -max_yaw, max_yaw, -yaw_sweep, yaw_sweep);
                 
                 pitch_pos = calc_pitch(yaw_pos);
@@ -69,8 +73,10 @@ public:
             break;
         }
 
-        bb->actuators[headYawPositionActuator] = yaw_pos;
-        bb->actuators[headPitchPositionActuator] = pitch_pos;
+        joints::pos::Head head(bb->actuators);
+        head[JointNames::HeadYaw] = yaw_pos;
+        head[JointNames::HeadPitch] = pitch_pos;
+        head.write(bb->actuators);
         
         bb->headYawLastPos = yaw_pos;
         bb->headPitchLastPos = pitch_pos;
@@ -86,11 +92,12 @@ public:
     void setHeadLookRCS(SetHeadLookRCS pos)
     {
         look_at_angle = pos.value.angle().rad();
+        look_at_pitch = pos.pitch;
     }
 
 private:
     HeadMotionType current_hm;
-    std::optional<float> look_at_angle;
+    std::optional<float> look_at_angle, look_at_pitch;
     float hm_dir = 1.f;
 
     // maximum value for yaw position (negative to positive)

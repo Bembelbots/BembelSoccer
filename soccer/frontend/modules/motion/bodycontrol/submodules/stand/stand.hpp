@@ -4,7 +4,7 @@
 
 #include <framework/joints/joints.hpp>
 
-#include <bodycontrol/utils/special_stances.hpp>
+#include <framework/joints/special_stances.hpp>
 #include <framework/logger/logger.h>
 
 #include <cmath>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "representations/flatbuffers/types/actuators.h"
+#include <deque>
 #include <unordered_map>
 
 #include <bodycontrol/internals/submodule.h>
@@ -7,123 +9,12 @@
 
 class LedControl : public SubModule {
 public:
-    LedControl() {
-        for (const auto &g : enumValues<LED>)
-            _internalState[g] = 0xFF000000;
-    }
+    LedControl() {}
 
     void setup(Setup s) override { s.cmds->connect<SetLeds, &LedControl::handleRequest>(this); }
 
     SubModuleReturnValue step(BodyBlackboard *bb) override {
-        float *actuators = bb->actuators.get().data();
-
-        for (const auto &i : _requestedLeds) {
-            LED group{i.first};
-            int color{i.second};
-            int r{(color >> 16) & 0xFF}, g{(color >> 8) & 0xFF}, b{color & 0xFF};
-
-            switch (group) {
-                case LED::LEFT_EYE_RIGHT:
-                    actuatorUpdateRange(actuators, faceLedRedLeft0DegActuator, faceLedRedLeft135DegActuator, r);
-                    actuatorUpdateRange(actuators, faceLedGreenLeft0DegActuator, faceLedGreenLeft135DegActuator, g);
-                    actuatorUpdateRange(actuators, faceLedBlueLeft0DegActuator, faceLedBlueLeft135DegActuator, b);
-                    break;
-
-                case LED::LEFT_EYE_LEFT:
-                    actuatorUpdateRange(actuators, faceLedRedLeft180DegActuator, faceLedRedLeft315DegActuator, r);
-                    actuatorUpdateRange(actuators, faceLedGreenLeft180DegActuator, faceLedGreenLeft315DegActuator, g);
-                    actuatorUpdateRange(actuators, faceLedBlueLeft180DegActuator, faceLedBlueLeft315DegActuator, b);
-                    break;
-
-                case LED::RIGHT_EYE_RIGHT:
-                    actuatorUpdateRange(actuators, faceLedRedRight0DegActuator, faceLedRedRight135DegActuator, r);
-                    actuatorUpdateRange(actuators, faceLedGreenRight0DegActuator, faceLedGreenRight135DegActuator, g);
-                    actuatorUpdateRange(actuators, faceLedBlueRight0DegActuator, faceLedBlueRight135DegActuator, b);
-                    break;
-
-                case LED::RIGHT_EYE_LEFT:
-                    actuatorUpdateRange(actuators, faceLedRedRight180DegActuator, faceLedRedRight315DegActuator, r);
-                    actuatorUpdateRange(actuators, faceLedGreenRight180DegActuator, faceLedGreenRight315DegActuator, g);
-                    actuatorUpdateRange(actuators, faceLedBlueRight180DegActuator, faceLedBlueRight315DegActuator, b);
-                    break;
-
-                case LED::CHEST:
-                    actuators[chestBoardLedRedActuator] = r;
-                    actuators[chestBoardLedGreenActuator] = g;
-                    actuators[chestBoardLedBlueActuator] = b;
-                    break;
-
-                case LED::LEFT_FOOT:
-                    actuators[lFootLedRedActuator] = r;
-                    actuators[lFootLedGreenActuator] = g;
-                    actuators[lFootLedBlueActuator] = b;
-                    break;
-
-                case LED::RIGHT_FOOT:
-                    actuators[rFootLedRedActuator] = r;
-                    actuators[rFootLedGreenActuator] = g;
-                    actuators[rFootLedBlueActuator] = b;
-                    break;
-
-                case LED::LEFT_EAR:
-                    updateEar(actuators, earsLedLeft0DegActuator, color);
-                    break;
-
-                case LED::RIGHT_EAR:
-                    updateEar(actuators, earsLedRight0DegActuator, color);
-                    break;
-
-                case LED::BRAIN_LEFT:
-                    updateBrain(actuators,
-                            {headLedFrontLeft1Actuator,
-                                    headLedFrontLeft0Actuator,
-                                    headLedMiddleLeft0Actuator,
-                                    headLedRearLeft0Actuator,
-                                    headLedRearLeft1Actuator,
-                                    headLedRearLeft2Actuator},
-                            color);
-                    break;
-
-                case LED::BRAIN_RIGHT:
-                    updateBrain(actuators,
-                            {headLedFrontRight1Actuator,
-                                    headLedFrontRight0Actuator,
-                                    headLedMiddleRight0Actuator,
-                                    headLedRearRight0Actuator,
-                                    headLedRearRight1Actuator,
-                                    headLedRearRight2Actuator},
-                            color);
-                    break;
-
-                case LED::BRAIN:
-                    updateBrain(actuators,
-                            {headLedFrontLeft1Actuator,
-                                    headLedFrontLeft0Actuator,
-                                    headLedMiddleLeft0Actuator,
-                                    headLedRearLeft0Actuator,
-                                    headLedRearLeft1Actuator,
-                                    headLedRearLeft2Actuator,
-                                    headLedRearRight2Actuator,
-                                    headLedRearRight1Actuator,
-                                    headLedRearRight0Actuator,
-                                    headLedMiddleRight0Actuator,
-                                    headLedFrontRight0Actuator,
-                                    headLedFrontRight1Actuator},
-                            color);
-                    break;
-
-                // avoid compiler warning (these groups were rewritten in handleRequest())
-                case LED::RIGHT_EYE:
-                case LED::LEFT_EYE:
-                case LED::ALL:
-                    break;
-            }
-
-            // don't forget to update internal data structure
-            _internalState[group] = color;
-        }
-
-        _requestedLeds.clear();
+        bb->actuators->led = leds;
         return RUNNING;
     }
 
@@ -131,73 +22,135 @@ public:
      * Handle commands
      */
     void handleRequest(SetLeds req) {
-        // skip if request color is already set
-        if (_internalState[req.group] == req.color)
-            return;
-
-        // handle LED groups, that consist of multiple sub-groups
+        Color color(req.color);
         switch (req.group) {
-            case LED::BRAIN:
-                _requestedLeds[LED::BRAIN_LEFT] = req.color;
-                _requestedLeds[LED::BRAIN_RIGHT] = req.color;
+            case LED::CHEST:
+                updateSingle(leds.chest, color);
                 break;
-            case LED::RIGHT_EYE:
-                _requestedLeds[LED::RIGHT_EYE_LEFT] = req.color;
-                _requestedLeds[LED::RIGHT_EYE_RIGHT] = req.color;
+
+            case LED::LEFT_EAR:
+                updateEar(leds.ears.left, req.color);
                 break;
+
+            case LED::RIGHT_EAR:
+                updateEar(leds.ears.right, req.color);
+                break;
+
             case LED::LEFT_EYE:
-                _requestedLeds[LED::LEFT_EYE_LEFT] = req.color;
-                _requestedLeds[LED::LEFT_EYE_RIGHT] = req.color;
+                updateEye(leds.eyes.left, LEDSide::All, color);
                 break;
+
+            case LED::LEFT_EYE_LEFT:
+                updateEye(leds.eyes.left, LEDSide::Left, color);
+                break;
+
+            case LED::LEFT_EYE_RIGHT:
+                updateEye(leds.eyes.left, LEDSide::Right, color);
+                break;
+
+            case LED::RIGHT_EYE:
+                updateEye(leds.eyes.right, LEDSide::All, color);
+                break;
+
+            case LED::RIGHT_EYE_LEFT:
+                updateEye(leds.eyes.right, LEDSide::Left, color);
+                break;
+
+            case LED::RIGHT_EYE_RIGHT:
+                updateEye(leds.eyes.right, LEDSide::Right, color);
+                break;
+
+            case LED::LEFT_FOOT:
+                updateSingle(leds.feet.left, color);
+                break;
+
+            case LED::RIGHT_FOOT:
+                updateSingle(leds.feet.right, color);
+                break;
+
+            case LED::SKULL:
+                updateSkull(leds.skull, LEDSide::All, color.brightness);
+                break;
+
+            case LED::SKULL_LEFT:
+                updateSkull(leds.skull, LEDSide::Left, color.brightness);
+                break;
+
+            case LED::SKULL_RIGHT:
+                updateSkull(leds.skull, LEDSide::Right, color.brightness);
+                break;
+
             case LED::ALL:
-                _requestedLeds[LED::CHEST] = req.color;
-                _requestedLeds[LED::BRAIN_LEFT] = req.color;
-                _requestedLeds[LED::BRAIN_RIGHT] = req.color;
-                _requestedLeds[LED::RIGHT_EYE_LEFT] = req.color;
-                _requestedLeds[LED::RIGHT_EYE_RIGHT] = req.color;
-                _requestedLeds[LED::LEFT_EYE_LEFT] = req.color;
-                _requestedLeds[LED::LEFT_EYE_RIGHT] = req.color;
-                _requestedLeds[LED::RIGHT_EAR] = req.color;
-                _requestedLeds[LED::LEFT_EAR] = req.color;
-                _requestedLeds[LED::RIGHT_FOOT] = req.color;
-                _requestedLeds[LED::LEFT_FOOT] = req.color;
+                updateSingle(leds.chest, color);
+                updateEye(leds.eyes.left, LEDSide::All, color);
+                updateEye(leds.eyes.right, LEDSide::All, color);
+                updateSingle(leds.feet.left, color);
+                updateSingle(leds.feet.right, color);
+                updateSkull(leds.skull, LEDSide::All, color.brightness);
                 break;
-            default:
-                _requestedLeds[req.group] = req.color;
         }
     }
 
 private:
-    std::unordered_map<LED, int> _internalState, ///< store internal representation to avoid double set of values
-            _requestedLeds;                      ///< leds requested. will be set with updateActuators call
+    bbipc::LED leds;
+    enum class LEDSide { Left, Right, All };
 
-    void updateEar(float *actuators, int actuator, size_t value) {
-        static const size_t num_actuators = 10;
+    struct Color {
+        float r, g, b;
+        float brightness;
 
-        value = std::min(num_actuators, (value * num_actuators) / 100);
+        // convert RGB integer to separate floats
+        explicit Color(const int &c) : brightness(c / 255.f) {
+            r = ((c >> 16) & 0xFF) / 255.f;
+            g = ((c >> 8) & 0xFF) / 255.f;
+            b = (c & 0xFF) / 255.f;
+        }
+    };
 
-        actuatorUpdateRange(actuators, actuator, actuator + num_actuators, 0);
-        for (size_t i = 0; i < value && i < num_actuators; i++) {
-            actuators[actuator + i] = 0xFF;
+    void updateSingle(bbipc::LEDSingle &led, const Color &color) {
+        led.r = color.r;
+        led.g = color.g;
+        led.b = color.b;
+    }
+
+    template<size_t N>
+    void updateEye(bbipc::LEDString<N> &eye, const LEDSide side, const Color &color) {
+        size_t start{0}, end{N / 2};
+        switch (side) {
+            case LEDSide::Left:
+                break;
+            case LEDSide::Right:
+                start = end;
+                break;
+            case LEDSide::All:
+                end = eye.NUM_LEDS;
+                break;
+        }
+        for (size_t i{start}; i < end; ++i) {
+            eye.r[i] = color.r;
+            eye.g[i] = color.g;
+            eye.b[i] = color.b;
         }
     }
 
-    void updateBrain(float *actuators, std::vector<int> segments, size_t value) {
-        size_t num_actuators = segments.size();
-
-        value = std::min(num_actuators, (value * num_actuators) / 100);
-
-        for (const int &segment : segments) {
-            actuators[segment] = 0;
-        }
-
-        for (size_t i = 0; i < value && i < segments.size(); i++) {
-            actuators[segments[i]] = 0xFF;
-        }
+    void updateEar(bbipc::LEDEar &ear, size_t range) {
+        LOG_WARN << __PRETTY_FUNCTION__ << " - setting ear LEDs from frontend is not supported";
     }
 
-    inline void actuatorUpdateRange(float *actuators, int from, int to, int value) {
-        for (int i = from; i <= to; ++i)
-            actuators[i] = value;
+    void updateSkull(bbipc::LEDSkull &skull, const LEDSide side, const float value) {
+        size_t start{0}, end{skull.size() / 2};
+        switch (side) {
+            case LEDSide::Left:
+                break;
+            case LEDSide::Right:
+                start = end;
+                break;
+            case LEDSide::All:
+                end = skull.size();
+                break;
+        }
+
+        for (size_t i{start}; i < end; ++i)
+            skull[i] = value;
     }
 };

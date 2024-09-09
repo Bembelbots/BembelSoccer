@@ -13,6 +13,7 @@ add_buildinfo(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME}
 	libbembelbots
+	bbrepr_flatbuffers
 	stdc++fs
 	Eigen3::Eigen
 	elfio

@@ -21,7 +21,7 @@ class EnergySaver : public SubModule {
     static constexpr int checkInterval{1000};      ///< interval in milliseconds for offset updates
     // end tuning section
 
-    std::map<joint_id, EMA> currentFiltered;
+    std::map<JointNames, EMA> currentFiltered;
     joints::pos::Legs prevAct, offsets;
     TimestampMs lastCheck{0};
     bool reset{false};
@@ -29,7 +29,7 @@ class EnergySaver : public SubModule {
 public:
     EnergySaver() {
         offsets.fill(0);
-        offsets.each([&](joint_id i) { currentFiltered.emplace(i, EMA(0, 0.85f)); });
+        offsets.each([&](JointNames i) { currentFiltered.emplace(i, EMA(0, 0.85f)); });
     }
 
     SubModuleReturnValue step(BodyBlackboard *bb) override {
@@ -38,10 +38,11 @@ public:
         joints::pos::Legs act(bb->actuators);
 
         // low-pass filter joint current sensors
-        current.each([&](joint_id i) { currentFiltered.at(i) += current[i]; });
+        current.each([&](JointNames i) { currentFiltered.at(i) += current[i]; });
 
         // check if legs are moving or bot has been lifted
-        if (!bb->qns[IS_STANDING] || !bb->qns[HAS_GROUND_CONTACT] || !joints::details::feq(act, prevAct, motionThreshold)) {
+        if (!bb->qns[IS_STANDING] || !bb->qns[HAS_GROUND_CONTACT] ||
+                !joints::details::feq(act, prevAct, motionThreshold)) {
             // reset offsets & abort
             if (!reset) {
                 offsets.fill(0);
@@ -61,15 +62,15 @@ public:
             return RUNNING;
 
         // find index of motor with highest current
-        joint_id max{JOINTS_BEGIN};
+        JointNames max{JointNames::MIN};
         for (auto &[id, value] : currentFiltered) {
-            if (max == JOINTS_BEGIN || value > currentFiltered.at(max))
+            if (max == JointNames::MIN || value > currentFiltered.at(max))
                 max = id;
         }
 
         if (currentFiltered.at(max) > currentThreshold) {
             // adjust offset
-            if (max == L_KNEE_PITCH || max == R_KNEE_PITCH)
+            if (max == JointNames::LKneePitch || max == JointNames::RKneePitch)
                 offsets[max] += delta;
             else
                 offsets[max] -= delta;

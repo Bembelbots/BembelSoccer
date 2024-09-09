@@ -18,9 +18,7 @@ std::vector<float> vectorCrossProductUnNormed(const std::vector<float> &a, const
     return std::vector<float>{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
 }
 
-std::vector<float> getHesseNormalFormOfLine(const std::vector<float> &lineIn) {
-    std::vector<float> line(lineIn);
-
+std::vector<float> getHesseNormalFormOfLine(std::vector<float> line) {
     float sign = (fabsf(line[2]) / line[2]);
     if (boost::math::isnan(sign)) {
         sign = 1.0f;
@@ -32,8 +30,7 @@ std::vector<float> getHesseNormalFormOfLine(const std::vector<float> &lineIn) {
     return line;
 }
 
-std::vector<float> normVector(const std::vector<float> &vecIn) {
-    std::vector<float> vec(vecIn);
+std::vector<float> normVector(std::vector<float> vec) {
     // jsassert(3 == vec.size());
     if (0.0f < fabsf(vec[2])) {
         vec[0] /= vec[2];

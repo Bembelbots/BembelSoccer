@@ -17,4 +17,5 @@ struct TeamMessage {
     std::optional<Coord> goaltarget;
     std::vector<Coord> obstacles;
     TimestampMs timestamp;
+    bool refereeGestureUp;
 };

@@ -1,5 +1,6 @@
 #include "kernel.h"
 
+#include "util/stacktrace.h"
 #include "util/depth_first_search.h"
 #include "meta.h"
 
@@ -8,6 +9,7 @@
 #include "../thread/util.h"
 #include "../thread/threadmanager.h"
 
+#include <exception>
 #include <iostream>
 #include <sstream>
 
@@ -178,7 +180,14 @@ Kernel::CompileResult Kernel::resolve() {
 
 void Kernel::run(ModuleId id) {
     jsassert(not tag_set(meta.modules[id].tags, ModuleTag::NoThread));
-    modules[id]->process();
+    try {
+        modules[id]->process();
+    } catch (std::exception &e) {
+        LOG_ERROR << "Exception thrown by " << meta.modules[id].name << ":";
+        LOG_ERROR << "+++\t" << e.what();
+        printStackTrace();
+        throw;
+    }
 }
 
 void Kernel::step(ModuleId id) {

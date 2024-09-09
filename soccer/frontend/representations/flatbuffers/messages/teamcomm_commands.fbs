@@ -1,0 +1,13 @@
+namespace bbapi;
+
+table RefereeGesture {}
+
+union TeamCommCommands {
+    RefereeGesture
+}
+
+table TeamCommCommand {
+    cmd: TeamCommCommands;
+}
+
+root_type TeamCommCommand;

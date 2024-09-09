@@ -1,0 +1,148 @@
+namespace bbapi;
+
+enum JointNames : ubyte {
+    HeadYaw = 0,
+    HeadPitch,
+    LShoulderPitch,
+    LShoulderRoll,
+    LElbowYaw,
+    LElbowRoll,
+    LWristYaw,
+    LHipYawPitch,
+    LHipRoll,
+    LHipPitch,
+    LKneePitch,
+    LAnklePitch,
+    LAnkleRoll,
+    RHipRoll,
+    RHipPitch,
+    RKneePitch,
+    RAnklePitch,
+    RAnkleRoll,
+    RShoulderPitch,
+    RShoulderRoll,
+    RElbowYaw,
+    RElbowRoll,
+    RWristYaw,
+    LHand,
+    RHand
+}
+
+enum LEyeLeds : ubyte {
+    Red_45,
+    Red_0,
+    Red_315,
+    Red_270,
+    Red_225,
+    Red_180,
+    Red_135,
+    Red_90,
+    Green_45,
+    Green_0,
+    Green_315,
+    Green_270,
+    Green_225,
+    Green_180,
+    Green_135,
+    Green_90,
+    Blue_45,
+    Blue_0,
+    Blue_315,
+    Blue_270,
+    Blue_225,
+    Blue_180,
+    Blue_135,
+    Blue_90
+}
+
+enum REyeLeds : ubyte {
+    Red_0,
+    Red_45,
+    Red_90,
+    Red_135,
+    Red_180,
+    Red_225,
+    Red_270,
+    Red_315,
+    Green_0,
+    Green_45,
+    Green_90,
+    Green_135,
+    Green_180,
+    Green_225,
+    Green_270,
+    Green_315,
+    Blue_0,
+    Blue_45,
+    Blue_90,
+    Blue_135,
+    Blue_180,
+    Blue_225,
+    Blue_270,
+    Blue_315
+}
+
+enum LEarLeds : ubyte {
+    Deg_0,
+    Deg_36,
+    Deg_72,
+    Deg_108,
+    Deg_144,
+    Deg_180,
+    Deg_216,
+    Deg_252,
+    Deg_288,
+    Deg_324
+}
+
+enum REarLeds : ubyte {
+    Deg_324,
+    Deg_288,
+    Deg_252,
+    Deg_216,
+    Deg_180,
+    Deg_144,
+    Deg_108,
+    Deg_72,
+    Deg_36,
+    Deg_0
+}
+
+enum SkullLeds : ubyte {
+    Front_Left_1,
+    Front_Left_0,
+    Middle_Left_0,
+    Rear_Left_0,
+    Rear_Left_1,
+    Rear_Left_2,
+    Rear_Right_2,
+    Rear_Right_1,
+    Rear_Right_0,
+    Middle_Right_0,
+    Front_Right_0,
+    Front_Right_1,
+}
+
+enum FSROrder : ubyte {
+    Front_Left,
+    Front_Right,
+    Rear_Left,
+    Rear_Right
+}
+
+enum TouchNames : ubyte {
+    Chest_Button,
+    Head_Front,
+    Head_Middle,
+    Head_Rear,
+    LFoot_Bumper_Left,
+    LFoot_Bumper_Right,
+    LHand_Back,
+    LHand_Left,
+    LHand_Right,
+    RFoot_Bumper_Left,
+    RFoot_Bumper_Right,
+    RHand_Back,
+    RHand_Left,
+    RHand_Right
+}

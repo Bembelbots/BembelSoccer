@@ -1,52 +1,53 @@
 #pragma once
 
-#include "../definitionsBody.h"
-
+#include <representations/flatbuffers/types/lola_names.h>
 
 namespace joints {
 namespace details {
-    
+
 // Start at 32 so nothing in this enum will collide with the 25 Joint values.
 // This allows us to check for incorrect usage if any bit below is set.
 enum class Mask : uint32_t {
-    HeadYaw        = 32<<HEAD_YAW,
-    HeadPitch      = 32<<HEAD_PITCH,
-    LShoulderPitch = 32<<L_SHOULDER_PITCH,
-    LShoulderRoll  = 32<<L_SHOULDER_ROLL,
-    LElbowYaw      = 32<<L_ELBOW_YAW,
-    LElbowRoll     = 32<<L_ELBOW_ROLL,
-    LWristYaw      = 32<<L_WRIST_YAW,
-    LHand          = 32<<L_HAND,
-    HipYawPitch    = 32<<L_HIP_YAW_PITCH,
-    LHipRoll       = 32<<L_HIP_ROLL,
-    LHipPitch      = 32<<L_HIP_PITCH,
-    LKneePitch     = 32<<L_KNEE_PITCH,
-    LAnklePitch    = 32<<L_ANKLE_PITCH,
-    LAnkleRoll     = 32<<L_ANKLE_ROLL,
-    RShoulderPitch = 32<<R_SHOULDER_PITCH,
-    RShoulderRoll  = 32<<R_SHOULDER_ROLL,
-    RElbowYaw      = 32<<R_ELBOW_YAW,
-    RElbowRoll     = 32<<R_ELBOW_ROLL,
-    RWristYaw      = 32<<R_WRIST_YAW,
-    RHand          = 32<<R_HAND,
-    RHipRoll       = 32<<R_HIP_ROLL,
-    RHipPitch      = 32<<R_HIP_PITCH,
-    RKneePitch     = 32<<R_KNEE_PITCH,
-    RAnklePitch    = 32<<R_ANKLE_PITCH,
-    RAnkleRoll     = 32<<R_ANKLE_ROLL,
+    HeadYaw        = 32<<JointNames::HeadYaw,
+    HeadPitch      = 32<<JointNames::HeadPitch,
+    LShoulderPitch = 32<<JointNames::LShoulderPitch,
+    LShoulderRoll  = 32<<JointNames::LShoulderRoll,
+    LElbowYaw      = 32<<JointNames::LElbowYaw,
+    LElbowRoll     = 32<<JointNames::LElbowRoll,
+    LWristYaw      = 32<<JointNames::LWristYaw,
+    LHipYawPitch   = 32<<JointNames::LHipYawPitch,
+    LHipRoll       = 32<<JointNames::LHipRoll,
+    LHipPitch      = 32<<JointNames::LHipPitch,
+    LKneePitch     = 32<<JointNames::LKneePitch,
+    LAnklePitch    = 32<<JointNames::LAnklePitch,
+    LAnkleRoll     = 32<<JointNames::LAnkleRoll,
+    RHipRoll       = 32<<JointNames::RHipRoll,
+    RHipPitch      = 32<<JointNames::RHipPitch,
+    RKneePitch     = 32<<JointNames::RKneePitch,
+    RAnklePitch    = 32<<JointNames::RAnklePitch,
+    RAnkleRoll     = 32<<JointNames::RAnkleRoll,
+    RShoulderPitch = 32<<JointNames::RShoulderPitch,
+    RShoulderRoll  = 32<<JointNames::RShoulderRoll,
+    RElbowYaw      = 32<<JointNames::RElbowYaw,
+    RElbowRoll     = 32<<JointNames::RElbowRoll,
+    RWristYaw      = 32<<JointNames::RWristYaw,
+    LHand          = 32<<JointNames::LHand,
+    RHand          = 32<<JointNames::RHand,
 
-    Head  = (32<<2)  -(32<<0),
-    LArm  = (32<<8)  -(32<<2),
-    Hips  = (32<<9)  -(32<<8),
-    LLeg  = (32<<14) -(32<<9),
-    RArm  = (32<<20) -(32<<14),
-    RLeg  = (32<<25) -(32<<20),
-    Legs  = Hips|RLeg|LLeg,
-    Arms  = LArm|RArm,
-    Hands = LWristYaw|LHand|RWristYaw|RHand,
-    Body  = Legs|Arms,
-    All   = Body|Head,
-    Old   = All & (~Hands)
+    Head  = HeadYaw | HeadPitch,
+    LArm  = LShoulderPitch | LShoulderRoll | LElbowYaw | LElbowRoll | LWristYaw | LHand,
+    Hips  = LHipYawPitch,
+    LLeg  = LHipRoll | LHipPitch | LKneePitch | LAnklePitch | LAnkleRoll,
+    RArm  = RShoulderPitch | RShoulderRoll | RElbowYaw | RElbowRoll | RWristYaw | RHand,
+    RLeg  = RHipRoll | RHipPitch | RKneePitch | RAnklePitch | RAnkleRoll,
+    Legs  = Hips | LLeg | RLeg,
+    Arms  = LArm | RArm,
+    Hands = LWristYaw | LHand | RWristYaw | RHand,
+    Body  = Legs | Arms,
+    All   = Body | Head,
+    Old   = All & ~Hands,
+
+    None  = 0
 };
 
 constexpr inline Mask operator|(Mask m1, Mask m2) {
@@ -63,12 +64,16 @@ constexpr inline bool any(Mask m) {
     return static_cast<bool>(m);
 }
 
-constexpr inline Mask idToMask(joint_id id) {
+constexpr inline Mask idToMask(JointNames id) {
     return static_cast<Mask>(32 << id);
 }
 
 constexpr inline Mask intToMask(int id) {
-    return idToMask(static_cast<joint_id>(id));
+    return idToMask(static_cast<JointNames>(id));
+}
+
+constexpr inline bool operator&(Mask m, JointNames j) {
+    return any(m & idToMask(j));
 }
 
 
@@ -105,7 +110,7 @@ static_assert(Mask::LLeg == (Mask::LHipRoll
                             | Mask::LAnkleRoll),
         "Bitmask Definitions are wrong");
 
-static_assert(Mask::Hips == (Mask::HipYawPitch) ,
+static_assert(Mask::Hips == (Mask::LHipYawPitch),
         "Bitmask Definitions are wrong");
 
 } // namespace details

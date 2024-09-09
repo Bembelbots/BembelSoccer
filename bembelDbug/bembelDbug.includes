@@ -1,0 +1,11 @@
+resources
+src/resources/images
+src/ui/__pycache__
+src
+src/utils
+src/resources
+src/ui
+resources/widgets/naolist
+resources/styles
+resources/images
+resources/widgets

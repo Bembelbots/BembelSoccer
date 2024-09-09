@@ -2,8 +2,8 @@
 
 #include "joints_base.hpp"
 #include "operators.hpp"
-#include "sensors.hpp"
-#include "tags.hpp"
+
+#include <representations/flatbuffers/types/sensors.h>
 
 
 namespace joints {
@@ -18,75 +18,20 @@ public:
         : JointsBase<JB>() {
     }
 
-
     explicit Status(const Joints &j)
         : JointsBase<JB>(j) {
     }
 
-    Status(FromArrayType, const std::array<float, NR_OF_JOINTS> &init)
-        : JointsBase<JB>(init) {
-    }
-
-    explicit Status(const Sensors &src) {
+    explicit Status(const bbipc::Sensors &src) {
         this->fill(0);
         this->read(src); 
     }
 
-    void read(const Sensors &src) {
-        JointsBase<JB>::read(src.get().data(), statusSensors);
+    void read(const bbipc::Sensors &src) {
+        JointsBase<JB>::read(src.joints.status);
     }
-
-private:
-
-    static const std::array<size_t, NR_OF_JOINTS> statusSensors;
-
 };
 JOINTS_ENABLE_OPERATORS(Status);
 
-
-// Do NOT touch the order of this array. Order of entries must be the same as
-// the joint_id enum.
-template<Mask JB>
-const std::array<size_t, NR_OF_JOINTS> Status<JB>::statusSensors = {
-    headYawStatusSensor,
-    headPitchStatusSensor,
-
-    lShoulderPitchStatusSensor,
-    lShoulderRollStatusSensor,
-
-    lElbowYawStatusSensor,
-    lElbowRollStatusSensor,
-
-    lWristYawStatusSensor,
-    lHandStatusSensor,
-
-    lHipYawPitchStatusSensor,
-
-    lHipRollStatusSensor,
-    lHipPitchStatusSensor,
-
-    lKneePitchStatusSensor,
-
-    lAnklePitchStatusSensor,
-    lAnkleRollStatusSensor,
-
-    rShoulderPitchStatusSensor,
-    rShoulderRollStatusSensor,
-
-    rElbowYawStatusSensor,
-    rElbowRollStatusSensor,
-
-    rWristYawStatusSensor,
-    rHandStatusSensor,
-
-    rHipRollStatusSensor,
-    rHipPitchStatusSensor,
-
-    rKneePitchStatusSensor,
-
-    rAnklePitchStatusSensor,
-    rAnkleRollStatusSensor,
-};
-    
 } // namespace details
 } // namespace joints

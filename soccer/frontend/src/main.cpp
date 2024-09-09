@@ -17,13 +17,12 @@ struct Application : public Engine {
     rt::Context<PlayingField, rt::Write> playingfield;
     rt::Context<Config, rt::Write> config;
 
-    bool setup(int use_instance, bool docker) {
-        settings->instance = use_instance;
+    bool setup(bool docker) {
         settings->docker = docker;
         settings->check_simulation();
 
         NaoInfoReader naoInfoReader;
-        NaoInfoResult naoInfoResult = naoInfoReader.getNaoInfo(settings->instance, settings->docker);
+        NaoInfoResult naoInfoResult = naoInfoReader.getNaoInfo(settings->docker);
 
         if(naoInfoResult.error == NaoInfoReaderError::BACKEND_CONNECT_ERROR) {
             LOG_ERROR << "unable to connect to backend";
@@ -63,7 +62,7 @@ struct Application : public Engine {
         return true;
     }
 
-    int run(int use_instance, bool docker, System *system) {
+    int run(bool docker, System *system) {
         rt::Kernel soccer;
 
         DebugServer network;
@@ -90,7 +89,7 @@ struct Application : public Engine {
 
         LOG_DEBUG << std::endl << soccer.printModules();
 
-        if(not setup(use_instance, docker)) {
+        if(not setup(docker)) {
             return EXIT_FAILURE;
         }
        

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bodycontrol/internals/submodule.h"
 #include <bodycontrol/utils/motionfile.h>
 #include <framework/joints/joints.hpp>
 #include <framework/logger/logger.h>
@@ -17,7 +18,8 @@ public:
 
     SubModuleReturnValue step(BodyBlackboard * bb) override {
         stiffness.write(bb->actuators);
-        mf.step(bb->timestamp_ms, bb->actuators, bb->sensors, bb->gyro(0), bb->gyro(1));
+        const auto &g{bb->sensors.imu.gyroscope};
+        mf.step(bb->timestamp_ms, bb->actuators, bb->sensors, g.x(), g.y());
 
         // LOG_DEBUG_EVERY_N(200) << "KICKING";
         if(not mf.isActive()){
@@ -46,7 +48,8 @@ public:
 
     SubModuleReturnValue step(BodyBlackboard * bb) override {
         stiffness.write(bb->actuators);
-        mf.step(bb->timestamp_ms, bb->actuators, bb->sensors, bb->gyro(0), bb->gyro(1));
+        const auto &g{bb->sensors.imu.gyroscope};
+        mf.step(bb->timestamp_ms, bb->actuators, bb->sensors, g.x(), g.y());
 
         // LOG_DEBUG_EVERY_N(200) << "KICKING";
         if(not mf.isActive()){

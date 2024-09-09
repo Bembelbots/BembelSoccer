@@ -1,0 +1,18 @@
+include "gc_enums.fbs"; 
+include "gc_robotinfo.fbs"; 
+
+namespace bbapi;
+
+table TeamInfo {
+    team_number: uint8;
+    field_player_color: TeamColor;
+    goalkeeper_color: TeamColor;
+    goalkeeper: uint8;
+    score: uint8;
+    penalty_shot: uint8;
+    single_shots: uint16;
+    message_budget: uint16;
+    players: [RobotInfo];
+}
+
+root_type TeamInfo;

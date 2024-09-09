@@ -1,6 +1,46 @@
+include "../types/roles.fbs";
+include "../types/botnames.fbs";
+
 namespace bbapi;
 
+// x/y units in mm, angle in radian*1000
+struct dpos {
+    x: short;
+    y: short;
+    a: short;
+}
+
+struct pos {
+    x: short;
+    y: short;
+}
+
+
 table TeamMessage {
+    name: RobotName = UNKNOWN;
+    player_num: ubyte;      // 1-20
+
+    battery: byte;          // battery charge in %, -1 when charging
+
+    role: RobotRole = NONE;
+    
+    fallen: bool = false;
+    position: dpos;         // position in mm
+    pos_conf: ubyte;
+
+    ball: pos;
+    ball_age: int;          // ball age in ms
+    ball_conf: ubyte;       // confidence in %
+
+    team_ball: pos;
+    team_ball_conf: ubyte;
+    is_nearest_to_ball: bool;
+ 
+    walktarget: dpos;
+    goaltarget: pos;
+    obstacles: [pos];
+
+    referee_gesture_up: bool;
 }
 
 root_type TeamMessage;

@@ -29,11 +29,27 @@ add_flatbuffers_library(
     SOURCES
         ${BBREPR_FB_DIR}/types/roles.fbs
         ${BBREPR_FB_DIR}/types/botnames.fbs
+        ${BBREPR_FB_DIR}/types/lola_names.fbs
+        ${BBREPR_FB_DIR}/types/robot_config.fbs
+        ${BBREPR_FB_DIR}/types/actuators.fbs
+        ${BBREPR_FB_DIR}/types/sensors.fbs
+        ${BBREPR_FB_DIR}/types/campose.fbs
+        ${BBREPR_FB_DIR}/types/gc_enums.fbs
+        ${BBREPR_FB_DIR}/types/gc_teaminfo.fbs
+        ${BBREPR_FB_DIR}/types/gc_robotinfo.fbs
         ${BBREPR_FB_DIR}/math/directed_coord.fbs
         ${BBREPR_FB_DIR}/math/coord.fbs
         ${BBREPR_FB_DIR}/messages/localization_message.fbs
+        ${BBREPR_FB_DIR}/messages/referee_gesture_message.fbs
         ${BBREPR_FB_DIR}/messages/team_message.fbs
         ${BBREPR_FB_DIR}/messages/cam_pose_message.fbs
+        ${BBREPR_FB_DIR}/messages/ipc_actuator_message.fbs
+        ${BBREPR_FB_DIR}/messages/ipc_sensor_message.fbs
+        ${BBREPR_FB_DIR}/messages/gamecontrol.fbs
+        ${BBREPR_FB_DIR}/messages/gamestate_message.fbs
+        ${BBREPR_FB_DIR}/messages/whistle_message.fbs
+        ${BBREPR_FB_DIR}/messages/whistle_commands.fbs
+        ${BBREPR_FB_DIR}/messages/log_event.fbs
         ${BBREPR_FB_DIR}/vision_results.fbs
     DESTINATION ${CMAKE_BINARY_DIR}/include/representations
 )
@@ -42,6 +58,9 @@ PRIVATE
     ${BBREPR_FB_DIR}/flatbuffers.h
     ${BBREPR_FB_DIR}/types/directed_coord.cpp
     ${BBREPR_FB_DIR}/types/coord.cpp
+    ${BBREPR_FB_DIR}/types/campose.cpp
+    ${BBREPR_FB_DIR}/types/actuators.cpp
+    ${BBREPR_FB_DIR}/types/sensors.cpp
 )
 target_link_libraries(bbrepr_flatbuffers bbframework)
 

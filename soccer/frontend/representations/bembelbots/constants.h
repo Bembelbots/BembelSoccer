@@ -19,7 +19,7 @@ static constexpr float initial_yaw = 0.0f;
 
 static constexpr float initial_pitch = 0.475f;
 
-static constexpr int max_ball_age = 5000;
+static constexpr int max_ball_age = 2500;
 
 static constexpr int max_robot_age = 2000;
 

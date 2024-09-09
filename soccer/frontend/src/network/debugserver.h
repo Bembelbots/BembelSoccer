@@ -1,7 +1,7 @@
 #pragma once
 
 #include <framework/network/udp.h>
-#include <framework/network/tcp-server.h>
+#include <framework/network/tcp_server.h>
 #include <framework/util/clock.h>
 #include <framework/rt/module.h>
 #include <representations/bembelbots/nao_info.h>
@@ -44,8 +44,6 @@ public:
     void send(const std::string &s);
 
     void send(const char *message, const size_t &size);
-
-    void sendIMG(const char *message, const size_t &size);
 
     bool isSending();
 
@@ -92,7 +90,6 @@ private:
     std::vector<bool> getDebugValues();
     std::vector<std::string> getDebugSymbols();
     void setDebugSymbol(const std::string &name, const bool &value);
-    buf_t encodeImage(const RgbImage &img, const ImageCodec &codec);
 };
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

@@ -1,3 +1,4 @@
+#include "representations/bembelbots/constants.h"
 #include "standalone/config.h"
 #include "behaviorblackboard.h"
 #include <framework/logger/logger.h>
@@ -6,6 +7,7 @@
 #include <cmath>
 
 using namespace std;
+using namespace bbapi;
 
 // BALL MOTION FILTER
 // INSIDE_OWN_PENELTY_BOX
@@ -34,6 +36,7 @@ BehaviorBlackboard::BehaviorBlackboard()
     // gamecontrol
     INIT_ENUM(game_state, GameState::INITIAL, "current game state");
     INIT_ENUM(game_state_led, GameState::INITIAL, "game state displayed on led (may differ from GC state, e.g. due to whistle)");
+    INIT_ENUM(game_state_real, GameState::INITIAL, "game state as determined by the whistle, referee gesture detection and team communcation (possibly more)."); // TODO: Does NOT actually include the whistle, see the gamestate module. Replace game_state_led with this state once that is fixed.
     INIT_ENUM(set_play, SetPlay::NONE, "current set state: None or different free kicks");
     INIT_VAR_RW(whistle, false, "true if whistle has been detected in set state");
     INIT_VAR(whistle_listen, false, "start/stop whistle processing");
@@ -123,6 +126,7 @@ BehaviorBlackboard::BehaviorBlackboard()
     INIT_ENUM(hm_type, HeadMotionType::NONE, "[output] head motion type");
     INIT_VAR(hm_pos, Coord(1, 0), "[output] head motion target");
     INIT_VAR(hm_dir, -1, "[output] current head motion direction");
+    INIT_VAR(hm_pitch, CONST::initial_pitch, "[output] current head motion pitch");
 
     // output arm motion control
     INIT_ENUM(arms, ArmsPosition::SIDE, "[output] arm motion type");

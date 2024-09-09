@@ -2,9 +2,8 @@
 
 #include "joints_base.hpp"
 #include "operators.hpp"
-#include "sensors.hpp"
-#include "tags.hpp"
 
+#include <representations/flatbuffers/types/sensors.h>
 
 namespace joints {
 namespace details {
@@ -18,70 +17,16 @@ public:
         : JointsBase<JB>(j) {
     }
 
-    Temperature(FromArrayType, const std::array<float, NR_OF_JOINTS> &init)
-        : JointsBase<JB>(init) {
-    }
-
-    explicit Temperature(const Sensors &src) {
+    explicit Temperature(const bbipc::Sensors &src) {
         this->fill(0);
         this->read(src); 
     }
 
-    void read(const Sensors &src) {
-        JointsBase<JB>::read(src.get().data(), temperatureSensors);
+    void read(const bbipc::Sensors &src) {
+        JointsBase<JB>::read(src.joints.temperature);
     }
-
-private:
-
-    static const std::array<size_t, NR_OF_JOINTS> temperatureSensors;
-
 };
 JOINTS_ENABLE_OPERATORS(Temperature);
 
-
-// Do NOT touch the order of this array. Order of entries must be the same as
-// the joint_id enum.
-template<Mask JB>
-const std::array<size_t, NR_OF_JOINTS> Temperature<JB>::temperatureSensors = {
-    headYawTemperatureSensor,
-    headPitchTemperatureSensor,
-
-    lShoulderPitchTemperatureSensor,
-    lShoulderRollTemperatureSensor,
-
-    lElbowYawTemperatureSensor,
-    lElbowRollTemperatureSensor,
-
-    lWristYawTemperatureSensor,
-    lHandTemperatureSensor,
-
-    lHipYawPitchTemperatureSensor,
-
-    lHipRollTemperatureSensor,
-    lHipPitchTemperatureSensor,
-
-    lKneePitchTemperatureSensor,
-
-    lAnklePitchTemperatureSensor,
-    lAnkleRollTemperatureSensor,
-
-    rShoulderPitchTemperatureSensor,
-    rShoulderRollTemperatureSensor,
-
-    rElbowYawTemperatureSensor,
-    rElbowRollTemperatureSensor,
-
-    rWristYawTemperatureSensor,
-    rHandTemperatureSensor,
-
-    rHipRollTemperatureSensor,
-    rHipPitchTemperatureSensor,
-
-    rKneePitchTemperatureSensor,
-
-    rAnklePitchTemperatureSensor,
-    rAnkleRollTemperatureSensor,
-};
-    
 } // namespace details
 } // namespace joints

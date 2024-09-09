@@ -141,7 +141,7 @@ void JonathansBallMotionFilter::addPointXY(float rcsX, float rcsY,
 void JonathansBallMotionFilter::addPointXY(float rcsX, float rcsY,
         float timestamp) {
     lastDataTime = timestamp;
-    if (fabs(float(lastTimestamp) - lastDataTime) < EPSILON) {
+    if (std::abs(float(lastTimestamp) - lastDataTime) < EPSILON) {
         lastTimestamp = int(lastDataTime);
     }
     hypothesis.add(rcsX, rcsY, timestamp);
@@ -154,7 +154,7 @@ void JonathansBallMotionFilter::addPointPol(float rcsR, float rcsPhi,
 void JonathansBallMotionFilter::addPointPol(float rcsR, float rcsPhi,
         float timestamp) {
     lastDataTime = timestamp;
-    if (fabs(float(lastTimestamp) - lastDataTime) < EPSILON) {
+    if (std::abs(float(lastTimestamp) - lastDataTime) < EPSILON) {
         lastTimestamp = int(lastDataTime);
     }
     hypothesis.add(rcsR * sin(rcsPhi), rcsR * cos(rcsPhi), timestamp);
@@ -229,17 +229,17 @@ void JonathansBallMotionFilter::updateParameters(int minNrOfValues,
         hypothesis.nrOfDirectionViolationsBeforeReset = maxAngleViolations;
         hypothesis.reset();
     }
-    if (fabs(velocityThreshold - hypothesis.smallVelocityThreshold) >
+    if (std::abs(velocityThreshold - hypothesis.smallVelocityThreshold) >
             EPSILON) {
         hypothesis.smallVelocityThreshold = velocityThreshold;
         hypothesis.reset();
     }
-    if (fabs(angleThreshold - hypothesis.wrongDirectionAngleThreshold) >
+    if (std::abs(angleThreshold - hypothesis.wrongDirectionAngleThreshold) >
             EPSILON) {
         hypothesis.wrongDirectionAngleThreshold = angleThreshold;
         hypothesis.reset();
     }
-    if (fabs(maxTimeInterval - hypothesis.longTimeThreshold) > EPSILON) {
+    if (std::abs(maxTimeInterval - hypothesis.longTimeThreshold) > EPSILON) {
         hypothesis.longTimeThreshold = maxTimeInterval;
         hypothesis.reset();
     }

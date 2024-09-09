@@ -101,9 +101,9 @@ enum class RGBAColor : uint32_t {
 
 SERIALIZABLE_ENUM_CLASS(LED,
     (CHEST),
-    (BRAIN),
-    (BRAIN_RIGHT),
-    (BRAIN_LEFT),
+    (SKULL),
+    (SKULL_RIGHT),
+    (SKULL_LEFT),
     (RIGHT_EYE),
     (RIGHT_EYE_LEFT),
     (RIGHT_EYE_RIGHT),
@@ -170,10 +170,12 @@ enum class RemoteMotions {
     TURN_R = 5,
     STRAFE_L = 6,
     STRAFE_R = 7,
-    KICK=8,
-    STAND_UP=9,
-    RAW=10,
-    DESIGN=11,
+    KICK = 8,
+    STAND_UP = 9,
+    RAW = 10,
+    DESIGN = 11,
+    HEAD_SWEEP = 12,
+    HEAD_STATIC =13,
 };
 
 

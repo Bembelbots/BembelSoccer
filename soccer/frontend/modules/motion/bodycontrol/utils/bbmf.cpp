@@ -1,4 +1,6 @@
 #include "bbmf.h"
+#include "framework/joints/body_v6.h"
+#include "framework/joints/joints.hpp"
 
 #include <framework/logger/logger.h>
 
@@ -50,8 +52,8 @@ int BBMF::getDuration() const {
     return maxDuration;
 }
 
-void BBMF::step(int currentTime, joints::Actuators &actuators, 
-        const joints::Sensors &sensors, float gyroX, float gyroY){
+void BBMF::step(int currentTime, bbipc::Actuators *actuators, 
+        const bbipc::Sensors &sensors, float gyroX, float gyroY){
     _currentTick = currentTime;
 
     if (_currentTick > _nextPoseReached 
@@ -66,42 +68,9 @@ void BBMF::step(int currentTime, joints::Actuators &actuators,
         YPR ypr(0.0f, gyroY, gyroX);
         ankleBalancer.proceed(ypr); 
 
-        pos::Old ankles(Joints{
-                .headYaw = 0, // HEAD_YAW
-                .headPitch = 0, // HEAD_PITCH
-                .lShoulderPitch = 0, // LEFT_SHOULDER_PITCH
-                .lShoulderRoll = 0, // LEFT_SHOULDER_ROLL
-                .lElbowYaw = 0, // LEFT_ELBOW_YAW
-                .lElbowRoll = 0, // LEFT_ELBOW_ROLL
-                .lWristYaw = 0,
-                .lHand = 0,
-
-                .hipYawPitch = 0, // HIP_YAW_PITCH
-
-                .lHipRoll = 0, // LEFT_HIP_ROLL
-                .lHipPitch = 0, // LEFT_HIP_PITCH
-                .lKneePitch = 0, // LEFT_KNEE_PITCH
-                .lAnklePitch = ankleBalancer.pitch * 0.5f, // LEFT_ANKEL_PITCH
-                .lAnkleRoll = ankleBalancer.roll * 0.5f, // LEFT_ANKEL_ROLL
-
-                .rShoulderPitch = 0, // RIGHT_SHOULDER_PITCH
-                .rShoulderRoll = 0, // RIGHT_SHOULDER_ROLL
-
-                .rElbowYaw = 0, // RIGHT_ELBOW_YAW
-                .rElbowRoll = 0, // RIGHT_ELBOW_ROLL
-
-                .rWristYaw = 0,
-                .rHand = 0,
-
-                // 12 left out due to double HIP_YAW_PITCH
-
-                .rHipRoll = 0, // RIGHT_HIP_ROLL
-                .rHipPitch = 0, // RIGHT_HIP_PITCH
-                .rKneePitch = 0, // RIGHT_KNEE_PITCH
-                .rAnklePitch = ankleBalancer.pitch * 0.5f, // RIGHT_ANKEL_PITCH
-                .rAnkleRoll = ankleBalancer.roll * 0.5f, // RIGHT_ANKEL_ROLL
-            });
-
+        pos::Legs ankles;
+        ankles[JointNames::LAnklePitch] = ankles[JointNames::RAnklePitch] = ankleBalancer.pitch * 0.5f;
+        ankles[JointNames::LAnkleRoll] = ankles[JointNames::RAnkleRoll] = ankleBalancer.roll * 0.5f;
         nextTick += ankles;
     }
 
@@ -209,7 +178,6 @@ bool BBMF::loadStream(std::istream &ss) {
                 .lElbowYaw = float(values[4]), // LEFT_ELBOW_YAW
                 .lElbowRoll = float(values[5]), // LEFT_ELBOW_ROLL
                 .lWristYaw = 0,
-                .lHand = 0,
 
                 .hipYawPitch = float(values[6]), // HIP_YAW_PITCH
 
@@ -219,15 +187,6 @@ bool BBMF::loadStream(std::istream &ss) {
                 .lAnklePitch = float(values[10]), // LEFT_ANKEL_PITCH
                 .lAnkleRoll = float(values[11]), // LEFT_ANKEL_ROLL
 
-                .rShoulderPitch = float(values[18]), // RIGHT_SHOULDER_PITCH
-                .rShoulderRoll = float(values[19]), // RIGHT_SHOULDER_ROLL
-
-                .rElbowYaw = float(values[20]), // RIGHT_ELBOW_YAW
-                .rElbowRoll = float(values[21]), // RIGHT_ELBOW_ROLL
-
-                .rWristYaw = 0,
-                .rHand = 0,
-
                 // 12 left out due to double HIP_YAW_PITCH
 
                 .rHipRoll = float(values[13]), // RIGHT_HIP_ROLL
@@ -235,6 +194,17 @@ bool BBMF::loadStream(std::istream &ss) {
                 .rKneePitch = float(values[15]), // RIGHT_KNEE_PITCH
                 .rAnklePitch = float(values[16]), // RIGHT_ANKEL_PITCH
                 .rAnkleRoll = float(values[17]), // RIGHT_ANKEL_ROLL
+
+                .rShoulderPitch = float(values[18]), // RIGHT_SHOULDER_PITCH
+                .rShoulderRoll = float(values[19]), // RIGHT_SHOULDER_ROLL
+
+                .rElbowYaw = float(values[20]), // RIGHT_ELBOW_YAW
+                .rElbowRoll = float(values[21]), // RIGHT_ELBOW_ROLL
+
+                .rWristYaw = 0,
+
+                .lHand = 0,
+                .rHand = 0,
             });
 
             actuators *= DEG_TO_RAD;
@@ -248,7 +218,7 @@ bool BBMF::loadStream(std::istream &ss) {
     return valid;
 }
 
-bool BBMF::calculateInterpolationParams(const joints::Sensors &sensors) {
+bool BBMF::calculateInterpolationParams(const bbipc::Sensors &sensors) {
     pos::Old prev;
 
     if (currentFrame == frames.size()) {

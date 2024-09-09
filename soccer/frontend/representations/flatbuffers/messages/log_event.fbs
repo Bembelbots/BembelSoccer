@@ -1,0 +1,29 @@
+include "../types/gc_enums.fbs";
+
+namespace bbapi;
+
+union LogEvents { FallenEvent, GameControlEvent }
+
+enum FallenState : ubyte {
+    None,
+    GettingUp,
+    Fallen,
+    Falling
+}
+
+table FallenEvent {
+    state: FallenState;    
+    ground_contact: bool;
+}
+
+table GameControlEvent {
+    game_state: GameState;
+    penalized: bool;
+    unstiff: bool;
+}
+
+table LogEvent {
+    event: LogEvents;
+}
+
+root_type LogEvent;

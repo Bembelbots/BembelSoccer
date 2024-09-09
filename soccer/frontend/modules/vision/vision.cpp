@@ -124,7 +124,7 @@ Vision::DetectResult Vision::processBottomCam(CamImage img){
 Vision::DetectResult Vision::detect(CamImage &img, VisionToolbox &toolbox) {
     VisionResultVec results;
 
-    const camPose &eulers = img._eulers;
+    const CamPose &eulers = img._eulers;
     auto ball = toolbox.findBall(eulers.r[1], eulers.r[2]);
     visionResultsAppend(results, ball);
     auto lines = toolbox.findLines(board.showScanpoints);
@@ -132,10 +132,7 @@ Vision::DetectResult Vision::detect(CamImage &img, VisionToolbox &toolbox) {
     auto crossings = toolbox.findCrossings(lines, center_circle_radius);
     visionResultsAppend(results, crossings);
 
-
-    auto processed_img = VisionImageProcessed(img);
-    processed_img.results = results;
-    processed.emit(processed_img);
+    processed.emit(VisionImageProcessed(img, results));
 
     img.unlock(ImgLock::VISION);
     return std::make_pair(toolbox.isBallFound(), results);

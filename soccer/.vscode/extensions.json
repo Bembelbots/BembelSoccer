@@ -4,6 +4,7 @@
 		"ms-vscode.cpptools-extension-pack",
 		"ms-vscode.cmake-tools",
 		"jeff-hykin.better-cpp-syntax",
-		"augustocdias.tasks-shell-input"
+		//"augustocdias.tasks-shell-input",
+		"ms-python.python"
     ]
 }

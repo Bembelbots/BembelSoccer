@@ -1,4 +1,5 @@
 #pragma once
+#include "representations/flatbuffers/types/sensors.h"
 #include <vector>
 #include <Eigen/Core>
 
@@ -10,7 +11,7 @@ public:
     AHRSProvider();
     virtual ~AHRSProvider();
 
-    void update(Eigen::Vector3f g, Eigen::Vector3f a);
+    void update(const bbipc::IMU &imu);
 
     Angle getPitch();
     Angle getYaw();

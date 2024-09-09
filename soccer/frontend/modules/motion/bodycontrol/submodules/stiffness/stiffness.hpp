@@ -1,5 +1,7 @@
 #pragma once
 
+#include "representations/flatbuffers/types/actuators.h"
+#include "representations/flatbuffers/types/lola_names.h"
 #include <bodycontrol/internals/submodule.h>
 #include <framework/joints/joints.hpp>
 
@@ -13,13 +15,12 @@ public:
     using Command = StiffnessCommand;
 
     Stiffness() {
-
         unstiff.fill(-1.f);
         zero.fill(0.f);
         warmup.setFrom(zero);
 
         target.fill(targetStiffness);
-        target[L_HIP_YAW_PITCH] = targetHipStiffness;
+        target[JointNames::LHipYawPitch] = targetHipStiffness;
         warmup.setTo(target);
     }
 

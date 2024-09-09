@@ -63,7 +63,7 @@ public:
     /// i.e. i.e. angleBetween( (1,0), (0,1)) will return 90 degrees
     /// \param v
     /// \return
-    Angle angleBetween(const Vector2<T> &v) { return Angle::fromRadians(fabs(float(rotationDiff(v)))); }
+    Angle angleBetween(const Vector2<T> &v) { return Angle::fromRadians(std::abs(float(rotationDiff(v)))); }
 
     Vector2<float> rotateClockwise(const Angle &angle) const {
         float sincache = sinf(angle);

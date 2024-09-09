@@ -2,8 +2,8 @@
 #include "../htwk/ankle_balancer.h"
 
 struct PitchError {
-    float pitch;
-    float gyro;
+    float pitch{0};
+    float gyro{0};
 };
 
 struct Body {

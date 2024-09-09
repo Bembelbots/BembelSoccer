@@ -3,11 +3,17 @@
 #include <array>
 #include <atomic>
 
+#include <flatbuffers/array.h>
 #include <msgpack.hpp>
 #include <boost/asio.hpp>
 
 #include <libbembelbots/monitor_shm.hpp>
 #include <libbembelbots/bembelbots_shm.h>
+#include <msgpack/v2/object_fwd.hpp>
+#include <msgpack/v2/object_fwd_decl.hpp>
+
+#include <ipc_sensor_message_generated.h>
+#include <ipc_actuator_message_generated.h>
 
 namespace lola {
 
@@ -36,33 +42,29 @@ private:
     endpoint_t ep;
 
     std::atomic<bool> running{false};
-    bool simulator{false}, frontendConnected{false}, shutdown{false}, sitDone{false}, calibrated{false};
-    int64_t timestamp;
+    bool shutdown{false}, sitDone{false}, calibrated{false};
+    uint32_t last_tick{std::numeric_limits<uint32_t>::max()}, connCnt{0};
+
 
     BembelbotsShm bb_shm;
     MonitorShm m_shm;
 
-    std::array<float, lbbNumOfSensorIds> sensors{0};
-    std::array<float, lbbNumOfActuatorIds> actuators{0};
-
-    RobotName robotName{RobotName::UNKNOWN};
-    struct {
-        std::string head{"<unknown>"};
-        std::string body{"<unknown>"};
-    } serial;
+    bbapi::BembelIpcSensorMessageT sensorMsg;
+    bbapi::BembelIpcActuatorMessageT actuatorMsg;
+    bbipc::Sensors &sensors;
+    bbipc::Actuators &actuators;
 
     void calibrateGyro();
     void setIdleLeds();
+    void setEarLeds();
 
-    void toggleFrontend(const bool start);
+    void toggleFrontend(const bool start) const;
     void buttonHandler();
 
     void readSensors(const msgpack::object &obj);
     msgpack::sbuffer &writeActuators();
 
     static void say(const std::string &text);
-
-    void stiffness(const float &v);
 };
 
 } // namespace lola

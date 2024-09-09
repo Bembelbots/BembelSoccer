@@ -62,8 +62,8 @@ struct ModuleMeta {
 
     bool ready() const;
 
-    void doPreProcess();
-    void doPostProcess();
+    void doPreProcess() const;
+    void doPostProcess() const;
 };
 
 struct Metadata {

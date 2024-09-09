@@ -63,6 +63,7 @@ namespace  detail {
     private:
         friend class rt::Linker;
 
+        std::optional<T> data;
         int id = -1;
         MessageChannel<T> *link = nullptr;
 

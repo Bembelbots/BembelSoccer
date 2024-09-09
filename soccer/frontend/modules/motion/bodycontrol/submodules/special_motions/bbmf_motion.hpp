@@ -15,7 +15,8 @@ public:
     }
 
     SubModuleReturnValue step(BodyBlackboard *bb) override {
-        bbmf.step(bb->timestamp_ms, bb->actuators, bb->sensors, bb->gyro(0), bb->gyro(1));
+        const auto &gyro{bb->sensors.imu.gyroscope};
+        bbmf.step(bb->timestamp_ms, bb->actuators, bb->sensors, gyro.x(), gyro.y());
 
         if (!bbmf.isActive())
             return (deactivate) ? SubModuleReturnValue::DEACTIVATE_ME : SubModuleReturnValue::MOTION_STABLE;

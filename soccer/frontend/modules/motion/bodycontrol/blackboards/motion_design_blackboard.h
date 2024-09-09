@@ -2,7 +2,6 @@
 
 #include <framework/blackboard/blackboard.h>
 
-
 class MotionDesignBlackboard : public Blackboard {
 
 public:
@@ -11,10 +10,9 @@ public:
     MotionDesignBlackboard();
 
     // Actuators
-    MAKE_VAR(int, durationInitialPose);
-    MAKE_VAR(int, durationStabilize);
-    MAKE_VAR(int, durationFinalStand);
-
+    MAKE_VAR(float, head_pitch);
+    MAKE_VAR(float, head_yaw);
+    
     MAKE_VAR(float, l_shoulder_pitch);
     MAKE_VAR(float, l_shoulder_roll);
     MAKE_VAR(float, l_elbow_yaw);
@@ -30,7 +28,6 @@ public:
     MAKE_VAR(float, r_shoulder_roll);
     MAKE_VAR(float, r_elbow_yaw);
     MAKE_VAR(float, r_elbow_roll);
-    //MAKE_VAR(float, r_hip_yaw_pitch);
     MAKE_VAR(float, r_hip_roll);
     MAKE_VAR(float, r_hip_pitch);
     MAKE_VAR(float, r_knee_pitch);
@@ -38,6 +35,8 @@ public:
     MAKE_VAR(float, r_ankle_roll);
 
     // Stiffness
+    MAKE_VAR(float, headPitchStiffness);
+    MAKE_VAR(float, headYawStiffness);
     MAKE_VAR(float, lShoulderPitchStiffness);
     MAKE_VAR(float, lShoulderRollStiffness);
     MAKE_VAR(float, lElbowYawStiffness);
@@ -57,19 +56,17 @@ public:
     MAKE_VAR(float, rHipRollStiffness);
     MAKE_VAR(float, rHipPitchStiffness);
     MAKE_VAR(float, rKneePitchStiffness);
-    MAKE_VAR(float, rAnklePitchStiffness); 
+    MAKE_VAR(float, rAnklePitchStiffness);
     MAKE_VAR(float, rAnkleRollStiffness);
 
     // FLAG if there will be a number of keyframes played
     MAKE_VAR(bool, isPlayAllKeyframes);
     // FLAG if the current keyframe is done interpolating
     MAKE_VAR(bool, isKeyframeInterpolationComplete);
-    
+
     MAKE_VAR(bool, reReadActuators);
-    MAKE_VAR(bool, isSetStiffness);
+    MAKE_VAR(bool, jointsMoved);
     MAKE_VAR(float, stiffness);
-    
-    MAKE_VAR(bool, kick_active);
 
     MAKE_VAR(int, time);
 

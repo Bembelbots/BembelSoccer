@@ -12,7 +12,7 @@
 #pragma once
 
 #define BC_STATE_MACHINE(...) \
-    _state_machine_return_value; \
+    _state_machine_return_value{SubModuleReturnValue::HALT_AND_CATCH_FIRE}; \
     private: \
     int _state_machine_state = 0; \
     int _state_machine_last_state = -1; \

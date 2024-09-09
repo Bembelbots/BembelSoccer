@@ -39,7 +39,7 @@ inline bool eq(float a, float b) {
 inline bool eqz(float a) {
     if (a == 0.f || a == -0.f)
         return true;
-    if (fabs(a) < 1e-6)
+    if (std::abs(a) < 1e-6)
         return true;
     if (isnormal(a))
         return false;

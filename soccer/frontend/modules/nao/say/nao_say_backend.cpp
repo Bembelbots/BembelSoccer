@@ -10,8 +10,8 @@
 #include <representations/blackboards/settings.h>
 
 
-NaoSayBackend::NaoSayBackend(const std::string &my_id, const int &instance, bool simulator)
-        : BaseLoggerBackend(my_id, "naosay"), tts(new TTSSpeechd(my_id.c_str())), instance(instance), simulator(simulator), naoSayTick(0) {
+NaoSayBackend::NaoSayBackend(const std::string &my_id, const bool simulator)
+        : BaseLoggerBackend(my_id, "naosay"), tts(new TTSSpeechd(my_id.c_str())), simulator(simulator), naoSayTick(0) {
 }
 
 void NaoSayBackend::write(const std::string &msg) {

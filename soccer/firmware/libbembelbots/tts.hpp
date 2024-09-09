@@ -10,7 +10,7 @@
  */
 class TTSSpeechd {
 public:
-    TTSSpeechd(std::string_view client_name, std::string_view connection_name="main") {
+    explicit TTSSpeechd(std::string_view client_name, std::string_view connection_name="main") {
         conn = spd_open(client_name.data(), connection_name.data(), nullptr, SPD_MODE_SINGLE);
         if (conn)
             spd_set_language(conn, "en");

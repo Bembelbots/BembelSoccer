@@ -1,0 +1,78 @@
+namespace bbapi;
+
+// abuse enum as constant for sanity check, if this file matches the GC header
+enum GCConst : ubyte {
+    STRUCT_VERSION = 18
+}
+
+// SPL-team colors
+enum TeamColor : ubyte {
+    BLUE,
+    RED,
+    YELLOW,
+    BLACK,
+    WHITE,
+    GREEN,
+    ORANGE,
+    PURPLE,
+    BROWN,
+    GRAY
+}
+
+// SPL-gamecontroller game states
+enum GameState : ubyte {
+    INITIAL,
+    READY,
+    SET,
+    PLAYING,
+    FINISHED,
+    STANDBY
+}
+
+// SPL-gamecontroller secondary game states
+enum GamePhase : ubyte {
+    NORMAL,
+    PENALTYSHOOT,
+    OVERTIME,
+    TIMEOUT
+}
+
+// SPL competition types
+enum CompetitionType : ubyte {
+    NORMAL,
+    SHARED_AUTONOMY
+}
+
+// SPL competition phase
+enum CompetitionPhase : ubyte {
+    ROUNDROBIN,
+    PLAYOFF
+}
+
+// SPL set play
+enum SetPlay : ubyte {
+    NONE,
+    GOAL_KICK,
+    PUSHING_FREE_KICK,
+    CORNER_KICK,
+    KICK_IN,
+    PENALTY_KICK
+}
+
+// SPL penalties
+enum Penalty : ubyte {
+    NONE,
+    ILLEGAL_BALL_CONTACT,
+    PLAYER_PUSHING,
+    ILLEGAL_MOTION_IN_SET,
+    INACTIVE_PLAYER,
+    ILLEGAL_POSITION,
+    LEAVING_THE_FIELD,
+    REQUEST_FOR_PICKUP,
+    LOCAL_GAME_STUCK,
+    ILLEGAL_POSITION_IN_SET,
+    PLAYER_STANCE,
+    ILLEGAL_MOTION_IN_STANDBY,
+    SUBSTITUTE = 14,
+    MANUAL = 15
+}

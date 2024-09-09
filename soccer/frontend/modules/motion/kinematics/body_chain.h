@@ -13,7 +13,7 @@ private:
     const std::vector<DHParameter> dh;
     const std::vector<int> j;
 
-    Eigen::Matrix4f DHTransform(const joints::Sensors &s, int i);
+    Eigen::Matrix4f DHTransform(const bbipc::Sensors &s, int i);
 
 public:
     BodyChain(const std::vector<DHParameter> &dh, const std::vector<int> &j)
@@ -21,6 +21,6 @@ public:
         , j(j) {
     }
 
-    Eigen::Matrix4f transformation(const joints::Sensors &sensors, int initial, int final);
-    Eigen::Matrix4f transformation(const joints::Sensors &sensors, int dir = 1);
+    Eigen::Matrix4f transformation(const bbipc::Sensors &sensors, int initial, int final);
+    Eigen::Matrix4f transformation(const bbipc::Sensors &sensors, int dir = 1);
 };

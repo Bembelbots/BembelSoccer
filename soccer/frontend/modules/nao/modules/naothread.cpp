@@ -1,10 +1,16 @@
 #include "naothread.h"
+#include "ipc_sensor_message_generated.h"
+#include "representations/flatbuffers/types/actuators.h"
+#include "representations/flatbuffers/types/sensors.h"
 #include <framework/logger/logger.h>
 #include <framework/util/niceness.h>
 #include <representations/blackboards/settings.h>
 #include <framework/util/clock.h>
 #include <framework/util/clock_simulator.h>
 #include <representations/bembelbots/constants.h>
+
+#include <ipc_sensor_message_generated.h>
+#include <ipc_actuator_message_generated.h>
 
 const std::string NaoThread::threadName = "NaoThread";
 
@@ -17,33 +23,25 @@ void NaoThread::connect(rt::Linker &link) {
     link(settings);
     link(nao_state);
     link(nao_info);
+    link(actuatorMsg);
+    link(sensorMsg);
 }
 
 void NaoThread::setup() {
     nice(NICENESS_VERY_HIGH_PRIO);
 
-    if(!sensor_callback)
-    {
+    if (!sensor_callback) {
         LOG_ERROR << "Sensor callback not set!";
         LOG_FLUSH();
         exit(EXIT_FAILURE);
     }
 
-    int backendInstance = settings->instance;
+    LOG_INFO << "BembelbotsShm: " << bembelbotsShmName;
 
-    std::stringstream shmName;
-
-    shmName << bembelbotsShmName << "_" << backendInstance;
-
-    LOG_INFO << "BembelbotsShm: " << shmName.str();
-
-    try
-    {
-        shm = std::make_unique<BembelbotsShm>(shmName.str(), false);
-    }
-    catch(const boost::interprocess::interprocess_exception& ex)
-    {
-        if(ex.get_error_code() == boost::interprocess::error_code_t::not_found_error) {
+    try {
+        shm = std::make_unique<BembelbotsShm>(bembelbotsShmName, false);
+    } catch (const boost::interprocess::interprocess_exception &ex) {
+        if (ex.get_error_code() == boost::interprocess::error_code_t::not_found_error) {
             LOG_ERROR << "Backend is not running";
         }
         LOG_FLUSH();
@@ -73,27 +71,24 @@ void NaoThread::process() {
         missedFrames++;
     }
 
-    jsassert((*shm)->sensors.producedData().backendVersion == CURRENT_BACKEND_VERSION)
+    auto &sipc{(*shm)->sensors.producedData()};
+    jsassert(sipc.get(sensorMsg)) << "Invalid actuator message flatbuffer received!";
+
+    sensorMsg->timestamp = getTimestampMs();
+
+    jsassert(sensorMsg->backendVersion == BB_BACKEND_VERSION)
             << "\n\e[1;31m !!!  Incompatible backend version, update backend !!! \e[0m";
 
-    /********************/
-    /* Callback         */
-    /********************/
-    BBActuatorData *actuatorData = &(*shm)->actuators.consumedData();
-    const BBSensorData *sensorData = &(*shm)->sensors.producedData();
+    NaoState current_state{.timestamp_ms = getTimestampMs(),
+            .lola_timestamp = sensorMsg->lolaTimestamp,
+            .connected = sensorMsg->connected,
+            .bCamPose = {},
+            .tCamPose = {},
+            .actuatorData = actuatorMsg,
+            .sensorData = sensorMsg};
 
-    NaoState current_state{
-        .timestamp_ms = getTimestampMs(),
-        .lola_timestamp = sensorData->timestamp,
-        .connected = sensorData->connected,
-        .bCamPose = {},
-        .tCamPose = {},
-        .actuatorData = actuatorData,
-        .sensorData = sensorData
-    };
-
-    if(settings->simulator) {
-        const auto &simTick{sensorData->sensors[batteryTemperatureSensor]};
+    if (settings->simulator) {
+        const auto &simTick{sensorMsg->sensors.battery.temperature};
         if (settings->simulator && (simTick > 0)) {
             current_state.lola_timestamp = current_state.timestamp_ms = simTick * CONST::lola_cycle_ms;
             setGlobalTimeFromSimulation(current_state.timestamp_ms);
@@ -107,10 +102,13 @@ void NaoThread::process() {
     /************************/
     /* Write Actuators Back */
     /************************/
-    (*shm)->actuators.consumedData().tick = ticks++;
+    actuatorMsg->tick = ticks++;
+
+    auto &aipc{(*shm)->actuators.consumedData()};
+    jsassert(aipc.set(actuatorMsg)) << "Actuator message flatbuffer exceeds SHM size!";
     (*shm)->actuators.consume();
 }
 
-void NaoThread::stop(){
+void NaoThread::stop() {
     LOG_INFO << "nao thread stopped";
 }

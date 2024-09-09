@@ -23,7 +23,7 @@ struct NaoModules {
             link(settings);
         }, [&](){
             xlogsay = std::make_unique<XLogger>(LOGSAYID);
-            xlog_naosay = new NaoSayBackend(LOGSAYID, settings->instance, settings->simulator);
+            xlog_naosay = new NaoSayBackend(LOGSAYID, settings->simulator);
             xlogsay->add_backend(xlog_naosay, "%%MSG%%", false);
         });
         soccer.load(nao.get());

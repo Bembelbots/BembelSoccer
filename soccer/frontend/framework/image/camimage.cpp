@@ -18,7 +18,7 @@ void CamImage::_init() {
     _eulerMatrixCached = false;
 }
 
-void CamImage::setTransform(const camPose &eulers) {
+void CamImage::setTransform(const CamPose &eulers) {
     if (_eulers != eulers) {
         _eulers = eulers;
         _eulerMatrixCached = false;

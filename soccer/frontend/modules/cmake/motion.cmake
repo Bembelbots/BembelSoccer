@@ -5,7 +5,6 @@ target_sources(libfrontend
 PRIVATE
     ${MODMOTION_DIR}/kinematics/body_chain.cpp
     ${MODMOTION_DIR}/kinematics/cam_pose.cpp
-    ${MODMOTION_DIR}/kinematics/foot.cpp
 
     ${MODMOTION_DIR}/ahrs/ahrs.cpp
     ${MODMOTION_DIR}/ahrs/MadgwickAHRS.cpp

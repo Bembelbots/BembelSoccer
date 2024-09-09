@@ -7,7 +7,7 @@ class ConsoleBackend;
 class System;
 
 struct Engine {
-    virtual int run(int use_instance, bool docker, System *system);
+    virtual int run(bool docker, System *system);
     virtual ~Engine(){}
 };
 

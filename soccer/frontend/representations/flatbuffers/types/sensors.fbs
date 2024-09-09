@@ -1,0 +1,84 @@
+include "botnames.fbs";
+include "lola_names.fbs";
+
+native_include "representations/flatbuffers/types/sensors.h";
+
+namespace bbapi;
+
+struct JointSensors {
+    position: [float:25];
+    stiffness: [float:25];
+    temperature: [float:25];
+    current: [float:25];    
+    status: [int:25];
+}
+
+struct Battery {
+    charge: float;
+    current: float;
+    status: float;
+    temperature: float;
+}
+
+struct SonarSensors {
+    left: float;
+    right: float;
+}
+
+struct IMU {
+    accelerometer: [float:3];
+    gyroscope: [float:3];
+    angles: [float:2];
+}
+
+struct FSR {
+    left_foot: [float:4];
+    right_foot: [float:4];
+}
+
+struct TouchChest {
+    button: float;
+}
+
+struct TouchHead {
+    front: float;
+    middle: float;
+    rear: float;
+}
+
+struct TouchHand {
+    back: float;
+    left: float;
+    right: float;
+}
+
+struct TouchHands {
+    left: TouchHand;
+    right: TouchHand;
+}
+
+struct TouchFoot {
+    bumper_left: float;
+    bumper_right: float;
+}
+
+struct TouchFeet {
+    left: TouchFoot;
+    right: TouchFoot;
+}
+
+struct Touch {
+    chest: TouchChest;
+    head: TouchHead;
+    hands: TouchHands;
+    feet: TouchFeet;
+}
+
+struct Sensors (native_inline, native_type: "bbipc::Sensors") {
+    battery: Battery;
+    joints: JointSensors;
+    fsr: FSR;
+    imu: IMU;
+    sonar: SonarSensors;
+    touch: Touch;
+}

@@ -12,5 +12,4 @@ struct NaoCameras {
     bool initialized() const;
 private:
     bool simulator{false};
-    bool nullVideo{false};
 };

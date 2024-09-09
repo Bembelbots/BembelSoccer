@@ -51,7 +51,11 @@ void CameraV4L2::closeDevice() {
         return;  // already close
 
     // Force stop is running
-    stop();
+    try {
+        stop();
+    } catch(...) {
+
+    }
 
     fd = ::close(fd);
     if (fd < 0) {

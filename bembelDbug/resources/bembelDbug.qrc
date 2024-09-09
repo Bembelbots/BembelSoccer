@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/bembelDbug">
+        <file>images/nao-full.png</file>
+        <file>styles/style.qss</file>
+    </qresource>
+</RCC>

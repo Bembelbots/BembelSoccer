@@ -1,0 +1,12 @@
+include "../types/actuators.fbs";
+
+namespace bbapi;
+
+table BembelIpcActuatorMessage {
+    tick: uint32;
+    timestamp: uint64;
+
+    actuators: Actuators (native_inline);
+}
+
+root_type BembelIpcActuatorMessage;

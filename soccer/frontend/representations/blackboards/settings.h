@@ -29,7 +29,6 @@ public:
 
     MAKE_VAR(bool, simulator);
     MAKE_VAR(bool, docker);
-    MAKE_VAR(bool, isPenaltyShootout);
     MAKE_VAR(bool, logToFile);
     MAKE_VAR(bool, logImages);
     MAKE_VAR(int,  logImagesInterval);
@@ -39,7 +38,6 @@ public:
     MAKE_VAR(RobotName, name);
     MAKE_VAR(RobotRole, role);
     std::string simulatorHost;
-    int instance;
 };
 
 std::ostream &operator<<(std::ostream &s, const SettingsBlackboard *rhs);

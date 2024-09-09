@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ROBOT_NAME=gray5
 LOLA_PORT=10050

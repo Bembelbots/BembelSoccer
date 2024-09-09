@@ -83,10 +83,13 @@ public:
         EV_PENALIZED, //5
         EV_UNPENALIZED,
         EV_STATE_INITIAL,
+        EV_STATE_STANDBY,
         EV_STATE_READY,
         EV_STATE_SET,
         EV_STATE_PLAYING, //10
-        EV_STATE_FINISHED
+        EV_STATE_FINISHED,
+        EV_ROLE_PENALTYKICKER,
+        EV_ROLE_PENALTYGOALIE,
         } tLocalizationEvent;
 
     // handle (localization) events callback register here...
@@ -140,10 +143,10 @@ public:
     bool isPenalized;
 
     //what was the gamestate robot has been penalized?
-    GameState penalizedGamestate;
+    bbapi::GameState penalizedGamestate;
     
     //current gamestate
-    GameState gamestate;
+    bbapi::GameState gamestate;
 
     std::vector<Feature> matchedLandmarks;
 
@@ -152,7 +155,7 @@ public:
 
 
     /*
-     *handel loca events 
+     *handle loca events 
      */
     void initHandler();
     void penalizedHandler();

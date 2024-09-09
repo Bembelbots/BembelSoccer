@@ -1,11 +1,12 @@
 #pragma once
 
-#include "actuators.hpp"
+#include "framework/joints/body_v6.h"
 #include "joints_base.hpp"
 #include "operators.hpp"
-#include "sensors.hpp"
-#include "tags.hpp"
+#include "representations/flatbuffers/types/sensors.h"
 
+#include <optional>
+#include <representations/flatbuffers/types/actuators.h>
 
 namespace joints {
 namespace details {
@@ -14,135 +15,62 @@ template<Mask JB>
 class Pos : public JointsBase<JB> {
 
 public:
-
     Pos() = default;
 
-    explicit Pos(const Joints &j)
-        : JointsBase<JB>(j) {
-    }
+    explicit Pos(const Joints &j) : JointsBase<JB>(j) {}
 
-    Pos(FromArrayType, const std::array<float, NR_OF_JOINTS> &init)
-        : JointsBase<JB>(init) {
-    }
+    explicit Pos(const bbipc::JointArray &j) : JointsBase<JB>(j) {}
 
-    explicit Pos(const Sensors &src) {
+    explicit Pos(const bbipc::Sensors &src) {
         this->fill(0);
         this->read(src);
     }
 
-    explicit Pos(const Actuators &src) {
+    explicit Pos(const bbipc::Actuators &src) {
         this->fill(0);
         this->read(src);
     }
 
-    void read(const Sensors &src) {
-        JointsBase<JB>::read(src.get().data(), angleSensors);
+    explicit Pos(const bbipc::Actuators *src) : Pos(*src) {}
+
+    void read(const bbipc::Sensors &src) { JointsBase<JB>::read(src.joints.position); }
+
+    void read(const bbipc::Actuators &src) { JointsBase<JB>::read(src.joints.position); }
+
+    void read(const bbipc::Actuators *src) { read(*src); }
+
+    void read(const bbipc::JointArray &src) { JointsBase<JB>::read(src); }
+
+    void write(bbipc::Actuators &dst) const { JointsBase<JB>::write(dst.joints.position); }
+
+    void write(bbipc::Actuators *dst) const { write(*dst); }
+
+    void write(bbipc::JointArray &dst) const { JointsBase<JB>::write(dst); }
+
+    std::optional<std::vector<JointNames>> isInvalid() const {
+        constexpr auto &limits{joints::CONSTRAINTS};
+        std::vector<JointNames> err;
+
+        this->each([&](const JointNames &i) {
+            const auto &limit{limits.at(i)};
+            if (this->at(i) < limit.min)
+                err.emplace_back(i);
+            else if (this->at(i) > limit.max)
+                err.emplace_back(i);
+            else if (std::isinf(this->at(i)))
+                err.emplace_back(i);
+            else if (std::isnan(this->at(i)))
+                err.emplace_back(i);
+        });
+
+        if (err.empty())
+            return std::nullopt;
+
+        return err;
     }
-
-    void read(const Actuators &src) {
-        JointsBase<JB>::read(src.get().data(), angleActuators);
-    }
-
-    void write(Actuators &dst) const {
-        JointsBase<JB>::write(dst.get().data(), angleActuators);
-    }
-
-private:
-
-    static const std::array<size_t, NR_OF_JOINTS> angleSensors;
-    static const std::array<size_t, NR_OF_JOINTS> angleActuators;
-    
+    static constexpr float ERROR_THRESHOLD{0.0000001f};
 };
 JOINTS_ENABLE_OPERATORS(Pos);
-
-
-// Do NOT touch the order of this array. Order of entries must be the same as
-// the joint_id enum.
-template<Mask JB>
-const std::array<size_t, NR_OF_JOINTS> Pos<JB>::angleSensors = {
-    headYawPositionSensor,
-    headPitchPositionSensor,
-
-    lShoulderPitchPositionSensor,
-    lShoulderRollPositionSensor,
-
-    lElbowYawPositionSensor,
-    lElbowRollPositionSensor,
-
-    lWristYawPositionSensor,
-    lHandPositionSensor,
-
-    lHipYawPitchPositionSensor,
-
-    lHipRollPositionSensor,
-    lHipPitchPositionSensor,
-
-    lKneePitchPositionSensor,
-
-    lAnklePitchPositionSensor,
-    lAnkleRollPositionSensor,
-
-    rShoulderPitchPositionSensor,
-    rShoulderRollPositionSensor,
-
-    rElbowYawPositionSensor,
-    rElbowRollPositionSensor,
-
-    rWristYawPositionSensor,
-    rHandPositionSensor,
-
-    rHipRollPositionSensor,
-    rHipPitchPositionSensor,
-
-    rKneePitchPositionSensor,
-
-    rAnklePitchPositionSensor,
-    rAnkleRollPositionSensor,
-};
-
-// Do NOT touch the order of this array. Order of entries must be the same as
-// the joint_id enum.
-template<Mask JB>
-const std::array<size_t, NR_OF_JOINTS> Pos<JB>::angleActuators = {
-    headYawPositionActuator,
-    headPitchPositionActuator,
-
-    lShoulderPitchPositionActuator,
-    lShoulderRollPositionActuator,
-
-    lElbowYawPositionActuator,
-    lElbowRollPositionActuator,
-
-    lWristYawPositionActuator,
-    lHandPositionActuator,
-
-    lHipYawPitchPositionActuator,
-
-    lHipRollPositionActuator,
-    lHipPitchPositionActuator,
-
-    lKneePitchPositionActuator,
-
-    lAnklePitchPositionActuator,
-    lAnkleRollPositionActuator,
-
-    rShoulderPitchPositionActuator,
-    rShoulderRollPositionActuator,
-
-    rElbowYawPositionActuator,
-    rElbowRollPositionActuator,
-
-    rWristYawPositionActuator,
-    rHandPositionActuator,
-
-    rHipRollPositionActuator,
-    rHipPitchPositionActuator,
-
-    rKneePitchPositionActuator,
-
-    rAnklePitchPositionActuator,
-    rAnkleRollPositionActuator,
-};
 
 } // namespace details
 } //namespace joints

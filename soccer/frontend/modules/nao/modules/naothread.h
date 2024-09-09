@@ -5,6 +5,8 @@
 #include <representations/bembelbots/nao_info.h>
 #include "../naostate.h"
 #include "../nao.h"
+#include "ipc_actuator_message_generated.h"
+#include "ipc_sensor_message_generated.h"
 
 class SettingsBlackboard;
 
@@ -29,6 +31,8 @@ private:
     rt::Context<NaoInfo> nao_info;
     rt::Context<SettingsBlackboard> settings;
     rt::Output<NaoState> nao_state;
+    rt::Output<bbapi::BembelIpcActuatorMessageT> actuatorMsg;
+    rt::Output<bbapi::BembelIpcSensorMessageT> sensorMsg;
 
     int timeout = 0;
     int missedFrames = 0;

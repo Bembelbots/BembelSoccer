@@ -24,7 +24,6 @@ public:
 
 private:
     CameraV4L2 *cam;
-    uint8_t *imgbuf;
     bool isTopCam;
     std::unordered_map<CameraDefinitions::CameraOption, CameraParameter> param;
 

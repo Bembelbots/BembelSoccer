@@ -4,7 +4,7 @@
 #include <cmath>
 
 inline bool floatEQ(const float x, const float y) {
-    return fabsf(x - y) < 0.00001f;
+    return std::abs(x - y) < 0.00001f;
 }
 
 // test, and 'true'  if value is 'between' two other values

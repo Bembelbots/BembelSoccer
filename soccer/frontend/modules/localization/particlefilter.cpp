@@ -14,6 +14,7 @@
 #include "particlefilter.h"
 
 using namespace std;
+using namespace bbapi;
 
 Particle::Particle(const DirectedCoord &data, const float &w)
     : weight(w), pose(data) {}
@@ -57,25 +58,20 @@ ParticleFilter::ParticleFilter(const Settings &config)
     //place particles at both sides
     initHandler();
     //State events
-    handle_event(EV_STATE_INITIAL, function<void()>(
-                     bind(&ParticleFilter::initHandler, this)));
-    handle_event(EV_STATE_READY, function<void()>(
-                     bind(&ParticleFilter::readyHandler, this)));
-    handle_event(EV_STATE_SET, function<void()>(
-                     bind(&ParticleFilter::setHandler, this)));
-    handle_event(EV_STATE_PLAYING, function<void()>(
-                     bind(&ParticleFilter::playHandler, this)));
-    handle_event(EV_PENALIZED, function<void()>(
-                     bind(&ParticleFilter::penalizedHandler, this)));
-    handle_event(EV_UNPENALIZED, function<void()>(
-                     bind(&ParticleFilter::unpenalizedHandler, this)));
+    handle_event(EV_STATE_INITIAL, bind(&ParticleFilter::initHandler, this));
+    handle_event(EV_STATE_STANDBY, [&]() { gamestate = GameState::STANDBY; });
+    handle_event(EV_STATE_READY, bind(&ParticleFilter::readyHandler, this));
+    handle_event(EV_STATE_SET, bind(&ParticleFilter::setHandler, this));
+    handle_event(EV_STATE_PLAYING, bind(&ParticleFilter::playHandler, this));
+    handle_event(EV_PENALIZED, bind(&ParticleFilter::penalizedHandler, this));
+    handle_event(EV_UNPENALIZED, bind(&ParticleFilter::unpenalizedHandler, this));
     //lost ground event
     handle_event(EV_FALLEN,[&](){isFallenRobot = true;});
     //back on ground event
-    handle_event(EV_BACK_UP, function<void()>(
-                    bind(&ParticleFilter::standUpHandler, this)));
-    handle_event(EV_GOT_GROUND, function<void()>(
-                    bind(&ParticleFilter::gotGroundHandler, this)));
+    handle_event(EV_BACK_UP, bind(&ParticleFilter::standUpHandler, this));
+    handle_event(EV_GOT_GROUND, bind(&ParticleFilter::gotGroundHandler, this));
+    handle_event(EV_ROLE_PENALTYKICKER, [&]() { conf.role = RobotRole::PENALTYKICKER; });
+    handle_event(EV_ROLE_PENALTYGOALIE, [&]() { conf.role = RobotRole::PENALTYGOALIE; });
 }
 ParticleFilter::~ParticleFilter() {}
 
@@ -133,12 +129,13 @@ void ParticleFilter::unpenalizedHandler() {
     // in unpenalized the both possible positions(on the both sidelines the rbot could be placed after
     // penalized ) are saved, particles are spread around this positions in turn
     vector<DirectedCoord> possible_pos = conf.pf->getUnpenalizedPose();
-    float deviationX = conf.pf->_lengthInsideBounds/10.0f; 
+    float deviationX = conf.pf->_lengthInsideBounds/10.0f;
+    float deviationY = 0.10f; 
     //if "motion in set" -penalty robot is places around current position
     if (penalizedGamestate == GameState:: SET){
         possible_pos.push_back(pos);
     }
-    setParticlesToPosition(possible_pos , deviationX);
+    setParticlesToPosition(possible_pos , deviationX, deviationY);
 
     //filter invalid positions
     for (auto &particle: particles) {
@@ -475,7 +472,7 @@ float ParticleFilter::adjustParticlesWithLandmarkHypos(const pair<vector<Directe
     DirectedCoord minHypo;
     for (DirectedCoord h: hypos.first){
         for (auto particle :particles){
-            float tmp_dist = h.coord.dist(particle.pose.coord) + fabs(h.angle.dist(particle.pose.angle).rad());
+            float tmp_dist = h.coord.dist(particle.pose.coord) + std::abs(h.angle.dist(particle.pose.angle).rad());
             if (tmp_dist < minDist){
                 second_minDist = minDist;
                 minDist = tmp_dist;

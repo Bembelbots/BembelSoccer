@@ -1,0 +1,11 @@
+resources/widgets/remote_keydialog.ui
+resources/widgets/remote.ui
+resources/bembelDbug.qrc
+resources/widgets/categorizedtable.ui
+resources/widgets/mainwindow.ui
+resources/widgets/naocamera.ui
+resources/widgets/naoconfiguration.ui
+resources/widgets/naolist/naolist.ui
+resources/widgets/naolist/nao.ui
+resources/styles/style.qss
+resources/images/nao-full.png

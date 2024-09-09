@@ -27,7 +27,7 @@ float lineToPointDist(const std::vector<float> &point, const std::vector<float> 
 * @param vector line == size 3 (a,b,c)^T <==> a*x+b*y+c=0
 * @return vector line == size 3 1/||n||*(a,b,c)^T, n=sqrtf(a^2+b^2)
 */
-std::vector<float> getHesseNormalFormOfLine(const std::vector<float> &line);
+std::vector<float> getHesseNormalFormOfLine(std::vector<float> line);
 
 //// The 6 above either to Line or Circle.... see definition-comment below
 ////////////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ std::vector<float> vectorCrossProductUnNormed(const std::vector<float> &a, const
 * @param vector size3
 * @return vector size3, 3rd elemet = 1
 */
-std::vector<float> normVector(const std::vector<float> &vec);
+std::vector<float> normVector(std::vector<float> vec);
 
 class Measurement1D {
 public:

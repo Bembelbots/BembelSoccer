@@ -12,6 +12,9 @@
 #include "../naostate.h"
 #include <deque>
 
+#include <cam_pose_message_generated.h>
+#include <gamestate_message_generated.h>
+
 //class DoCameraParameter{};
 class NaoCameras;
 
@@ -30,8 +33,10 @@ private:
 */
     rt::Context<SettingsBlackboard> settings;
     rt::Input<NaoState, rt::Snoop> nao_states;
+    rt::Input<bbapi::GamestateMessageT> game_state;
     rt::Context<NaoInfo> nao_info;
     rt::Context<ImageProvider, rt::Write> image_provider;
+    rt::Output<bbapi::CamPoseMessageT, rt::Event> camPose;
     rt::Command<NaoCommand, rt::Handle> cmds;
 
     std::shared_ptr<NaoCameras> cameras;
@@ -42,9 +47,12 @@ private:
 
     std::deque<NaoState> bs_dq;
 
-    void setCamPose(CamImage &img, camPose &cp);
+    void setCamPose(CamImage &img, CamPose &cp);
     void checkCameraParameters(bool force);
     void onSetPitchOffset(SetPitchOffset &);
+
+    void initCameras();
+    void resetCameras(bool do_say = true);
 };
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

@@ -7,6 +7,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <lola_names_generated.h>
+
 class XLogger;
 
 class LogMessage {
@@ -95,3 +97,7 @@ inline LogStream &operator<<(LogStream &out, const std::pair<K, V> &p) {
     return out;
 }
 
+inline LogStream &operator<<(LogStream &out, const bbapi::JointNames j) {
+    out << std::string_view(bbapi::EnumNameJointNames(j));
+    return out;
+}

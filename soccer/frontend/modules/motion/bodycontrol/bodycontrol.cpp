@@ -1,4 +1,6 @@
 #include "bodycontrol.h"
+#include "ipc_actuator_message_generated.h"
+#include "ipc_sensor_message_generated.h"
 #include <bodycontrol/internals/topological_sort.hpp>
 #include <bodycontrol/utils/actuatorcheck.h>
 
@@ -46,6 +48,11 @@ BodyControl::BodyControl():
     nextMotion(NONE)
 {
      LOG_DEBUG << "init Bodycontrol";
+
+    // check special stances are valid
+    jsassert(!STANDUP_STANCE.isInvalid());
+    jsassert(!SIT_STANCE.isInvalid());
+
 
     /*===========================*/
     /* tmp vector initialization */
@@ -190,21 +197,23 @@ void BodyControl::setup(SubModule::Setup s) {
     }
 }
 
-BodyState BodyControl::step(
-        rt::Command<BodyCommand, rt::Handle> &commands, BBActuatorData *actuatorData, const BBSensorData *sensorData) {
-    if (sensorData){
-        bodyblackboard.sensors.fill(sensorData->sensors);
+BodyState BodyControl::step(rt::Command<BodyCommand, rt::Handle> &commands, bbapi::BembelIpcActuatorMessageT *actuatorData, const bbapi::BembelIpcSensorMessageT *sensorData) {
+    if(!actuatorData || !sensorData)
+        return bbToState();
 
-        bodyblackboard.timestamp_ms = getTimestampMs();
-        bodyblackboard.lola_timestamp = sensorData->timestamp;
-        const auto &simTick{bodyblackboard.sensors[batteryTemperatureSensor]};
-        if (settings->simulator && (simTick > 0)) {
-            bodyblackboard.lola_timestamp = bodyblackboard.timestamp_ms =
-                    simTick * CONST::lola_cycle_ms;
-            setGlobalTimeFromSimulation(bodyblackboard.timestamp_ms);
-        }
-        bodyblackboard.connected = sensorData->connected;
+    bodyblackboard.actuators = &(actuatorData->actuators);
+
+    bodyblackboard.sensors = sensorData->sensors;
+
+    actuatorData->timestamp = bodyblackboard.timestamp_ms = getTimestampMs();
+    bodyblackboard.lola_timestamp = sensorData->lolaTimestamp;
+    const auto &simTick{bodyblackboard.sensors.battery.temperature};
+    if (settings->simulator && (simTick > 0)) {
+        bodyblackboard.lola_timestamp = bodyblackboard.timestamp_ms =
+                simTick * CONST::lola_cycle_ms;
+        setGlobalTimeFromSimulation(bodyblackboard.timestamp_ms);
     }
+    bodyblackboard.connected = sensorData->connected;
 
     commands.update();
     for (int id = 1; id < NO_OF_BODY_MODULES; id++) {
@@ -215,62 +224,51 @@ BodyState BodyControl::step(
     replaceMotionWithNextMotion();
     executeSubmodules();
 
-    if(actuatorData){
-        bodyblackboard.actuators.spill(actuatorData->actuators);
-    }
-
     return bbToState();
 }
 
 void BodyControl::executeSubmodules(){
-
     for (size_t id_counter=1; id_counter<NO_OF_BODY_MODULES; ++id_counter){
         MODULE_ID id = sequence[id_counter];
 
         if (active[id]){
-
             /* Execution of submodule */
             SubModuleReturnValue return_value = MOTION_UNSTABLE;
             return_value = submodule[id]->step(&bodyblackboard);
             
-             if(not checkAndCorrectActuators(
-                         bodyblackboard.actuators.get().data(), 
-                         bodyblackboard.sensors.get().data())) { 
+             if(!checkAndCorrectActuators(
+                         bodyblackboard.actuators, 
+                         bodyblackboard.sensors)) { 
                  LOG_ERROR_EVERY_N(100) << "Module (" << enumToStr(id) << "): Actuators out of range."; 
-
-                 /* jsassert(checkAndCorrectActuators( */
-                 /*         bodyblackboard.actuators.get().data(), */ 
-                 /*         bodyblackboard.sensors.get().data()) ); */ 
              } 
 
             /* react to return value commands */
-            switch (return_value){
+            switch (return_value) {                 
+                case MOTION_UNSTABLE:
+                    jsassert(isMotion(id)) << "Submodule " << id << " returned MOTION_UNSTABLE, but is not a motion.";
+                    motion_stable = false;
+                    break;
 
-            case MOTION_UNSTABLE:
-                jsassert(isMotion(id)) << "Submodule " << id << " returned MOTION_UNSTABLE, but is not a motion.";
-                motion_stable = false;
-                break;
+                case MOTION_STABLE:
+                    jsassert(isMotion(id)) << "Submodule " << id << " returned MOTION_STABLE, but is not a motion.";
+                    motion_stable = true;
+                    break;
 
-            case MOTION_STABLE:
-                jsassert(isMotion(id)) << "Submodule " << id << " returned MOTION_STABLE, but is not a motion.";
-                motion_stable = true;
-                break;
+                case RUNNING:
+                    jsassert(not isMotion(id)) << "Submodule " << id << " returned RUNNING, but is a motion.";
+                    //pass
+                    break;
 
-            case RUNNING:
-                jsassert(not isMotion(id)) << "Submodule " << id << " returned RUNNING, but is a motion.";
-                //pass
-                break;
+                case END_SEQUENCE:
+                    return;
 
-            case END_SEQUENCE:
-                return;
+                case HALT_AND_CATCH_FIRE:
+                    hcf;
+                    break;
 
-            case HALT_AND_CATCH_FIRE:
-                hcf;
-                break;
-
-            case DEACTIVATE_ME:
-                active[id] = false;
-                break;
+                case DEACTIVATE_ME:
+                    active[id] = false;
+                    break;
             }
         }
     }
@@ -339,8 +337,6 @@ BodyState BodyControl::bbToState() const {
 
     st.activeMotion = bb.activeMotion;
 
-    st.accel = bb.accel;
-    st.gyro = bb.gyro;
     st.bodyAngles = bb.bodyAngles;
 
     st.lastHeadYaw = bb.headYawLastPos;

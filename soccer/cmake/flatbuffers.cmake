@@ -28,6 +28,7 @@ macro(__flatbuffers_command DESTINATION)
     __fbs_option_default(FLATBUFFERS_OPTIONS_MUTABLE            TRUE)
     __fbs_option_default(FLATBUFFERS_OPTIONS_NAME_STRINGS       TRUE)
     __fbs_option_default(FLATBUFFERS_OPTIONS_CPP_CHANGE_CASE    TRUE)
+    __fbs_option_default(FLATBUFFERS_OPTIONS_CPP_PTR_TYPE       std::unique_ptr)
 
     if(${FLATBUFFERS_OPTIONS_CPP})
         list(APPEND FLATBUFFERS_COMMAND -c --cpp-std c++17 --scoped-enums)
@@ -56,6 +57,11 @@ macro(__flatbuffers_command DESTINATION)
     if(${FLATBUFFERS_OPTIONS_NAME_STRINGS})
         list(APPEND FLATBUFFERS_COMMAND --gen-name-strings)
     endif()
+
+    if(DEFINED ${FLATBUFFERS_OPTIONS_CPP_PTR_TYPE})
+        list(APPEND FLATBUFFERS_COMMAND --cpp-ptr-type ${FLATBUFFERS_OPTIONS_CPP_PTR_TYPE})
+    endif()
+
 
     list(APPEND -I ${CMAKE_CURRENT_SOURCE_DIR})
     list(APPEND -o ${DESTINATION})

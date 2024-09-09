@@ -1,0 +1,10 @@
+include "../types/gc_enums.fbs";
+
+namespace bbapi;
+
+table GamestateMessage {
+    game_state_official: GameState;
+    game_state_real: GameState;
+}
+
+root_type GamestateMessage;

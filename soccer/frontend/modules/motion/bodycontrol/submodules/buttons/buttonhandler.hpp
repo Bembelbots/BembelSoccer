@@ -3,17 +3,18 @@
 #include <bodycontrol/internals/submodule.h>
 
 #include "button.h"
+#include "lola_names_generated.h"
 
 
 class ButtonHandler : public SubModule {
 public:
     ButtonHandler() 
-            : chestButton(chestButtonSensor, 500)
-            , leftBumper({rBumperLeftSensor, rBumperRightSensor}, 500) 
-            , rightBumper({lBumperLeftSensor, lBumperRightSensor}, 500)
-            , frontHeadTouch(headTouchFrontSensor, 500) 
-            , middleHeadTouch(headTouchMiddleSensor, 500) 
-            , rearHeadTouch(headTouchRearSensor, 500) {
+            : chestButton(bbapi::TouchNames::Chest_Button, 500)
+            , leftBumper({bbapi::TouchNames::RFoot_Bumper_Left, bbapi::TouchNames::RFoot_Bumper_Right}, 500) 
+            , rightBumper({bbapi::TouchNames::LFoot_Bumper_Left, bbapi::TouchNames::LFoot_Bumper_Right}, 500)
+            , frontHeadTouch(bbapi::TouchNames::Head_Front, 500) 
+            , middleHeadTouch(bbapi::TouchNames::Head_Middle, 500) 
+            , rearHeadTouch(bbapi::TouchNames::Head_Rear, 500) {
     }
 
     SubModuleReturnValue step(BodyBlackboard * bb) override {

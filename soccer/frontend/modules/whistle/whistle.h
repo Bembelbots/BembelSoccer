@@ -1,8 +1,8 @@
 #pragma once
 #include <framework/rt/module.h>
-#include <representations/whistle/commands.h>
-#include <representations/whistle/whistleresult.h>
 #include <representations/blackboards/settings.h>
+#include <whistle_message_generated.h>
+#include <whistle_commands_generated.h>
 
 class WhistleDetector;
 class AlsaRecorder;
@@ -19,12 +19,13 @@ private:
     std::shared_ptr<AlsaRecorder> recorder;
 
     rt::Context<SettingsBlackboard> settings;
-    rt::Command<WhistleCommand, rt::Handle> cmds;
-    rt::Output<WhistleResult, rt::Event> event;
+    rt::Command<bbapi::WhistleCommandT, rt::Handle> cmds;
+    rt::Output<bbapi::WhistleMessageT, rt::Event> event;
 
-    void onRecordOnly(WhistleRecordOnly &);
-    void onStart(WhistleStart &);
-    void onStop(WhistleStop &);
+    void onRecordOnly(bbapi::WhistleRecordOnlyT &);
+    void onStart(bbapi::WhistleStartT &);
+    void onStop(bbapi::WhistleStopT &);
 
     bool listening = false;
+    bool prevFound = false;
 };

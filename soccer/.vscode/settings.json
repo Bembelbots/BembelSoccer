@@ -5,21 +5,52 @@
     },
     "C_Cpp.autoAddFileAssociations": false,
     "cmake.useCMakePresets": "always",
-    "cmake.statusbar.advanced": {
+    "cmake.pinnedCommands": [
+        "cmake.cleanConfigure",
+        "cmake.editCacheUI",
+        "cmake.stop"
+    ],
+    "cmake.debugConfig": {
+        "args": [
+            "--docker"
+        ]
+    },
+    "cmake.configureOnOpen": false,
+    "cmake.buildTask": false,
+    "cmake.options.statusBarVisibility": "compact",
+    "cmake.options.advanced": {
         "build": {
-            "visibility": "hidden"
+            "statusBarVisibility": "hidden"
         },
-        "ctest": {
-            "visibility": "hidden"
-        },
-        "testPreset": {
-            "visibility": "hidden"
-        },
-        "debug": {
-            "visibility": "hidden"
+        "buildTarget": {
+            "statusBarVisibility": "hidden"
         },
         "launch": {
-            "visibility": "hidden"
+            "statusBarVisibility": "inherit"
+        },
+        "launchTarget": {
+            "statusBarVisibility": "inherit"
+        },
+        "testPreset": {
+            "statusBarVisibility": "hidden"
+        },
+        "debug": {
+            "statusBarVisibility": "hidden"
+        },
+        "packagePreset": {
+            "statusBarVisibility": "hidden"
+        },
+        "workflow": {
+            "statusBarVisibility": "hidden"
+        },
+        "workflowPreset": {
+            "statusBarVisibility": "hidden"
+        },
+        "cpack": {
+            "statusBarVisibility": "hidden"
+        },
+        "ctest": {
+            "statusBarVisibility": "hidden"
         }
     }
 }

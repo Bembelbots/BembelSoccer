@@ -1,6 +1,8 @@
 #include <cmath>
 #include <cstdio>
 #include <chrono>
+#include <limits>
+#include <memory>
 #include <thread>
 #include <cstdlib>
 #include <cassert>
@@ -13,20 +15,27 @@
 
 #include <Eigen/Core>
 
+#include "connector.h"
+
+#include <framework/ipc/time.h>
+#include <framework/logger/logger.h>
+
 #include <libbembelbots/sit.hpp>
 #include <libbembelbots/tts.hpp>
 #include <libbembelbots/button.hpp>
-#include <libbembelbots/config/calibration.h>
 #include <libbembelbots/config/botnames.h>
+#include <libbembelbots/config/calibration.h>
 
-#include "connector.h"
-
-#include "mapping.h"
+#include <representations/flatbuffers/types/actuators.h>
+#include <representations/flatbuffers/types/sensors.h>
 
 using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 
 namespace lola {
+
+static constexpr std::array<std::string_view, 11> LOLA_ACTUATOR_NAMES{
+        "Position", "Stiffness", "REar", "LEar", "Chest", "LEye", "REye", "LFoot", "RFoot", "Skull", "Sonar"};
 
 static inline std::string to_string(const msgpack::object &o) {
     return std::string(o.via.str.ptr, o.via.str.size);
@@ -36,8 +45,8 @@ bool forkexec(const char *cmd, const char *arg = nullptr) {
     pid_t pid = fork();
     if (pid == 0) { // child
         // no spam
-        freopen("/dev/null", "w", stdout);
-        freopen("/dev/null", "w", stderr);
+        freopen("/dev/null", "w", stdout); // cppcheck-suppress ignoredReturnValue
+        freopen("/dev/null", "w", stderr); // cppcheck-suppress ignoredReturnValue
         // exec
         execl(cmd, cmd, arg, nullptr);
         exit(0);
@@ -45,8 +54,15 @@ bool forkexec(const char *cmd, const char *arg = nullptr) {
     return (pid > 0);
 }
 
+template<uint16_t length>
+void mutate_sensors(::flatbuffers::Array<float, length> *arr, const std::vector<float> &values) {
+    assert(arr->size() == values.size());
+    int i{0};
+    for (const auto &v : values)
+        arr->Mutate(i++, v);
+}
+
 msgpack::sbuffer Connector::stiffnessRequest(const float &stiffness) {
-    static const size_t NUM_JOINTS{lola::mapping::actuators.at("Stiffness").size()};
     msgpack::sbuffer buffer;
     buffer.clear();
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
@@ -62,18 +78,53 @@ msgpack::sbuffer Connector::stiffnessRequest(const float &stiffness) {
 
     // set all stiffnesses to -1
     pk.pack("Stiffness");
-    pk.pack_array(NUM_JOINTS);
+    pk.pack_array(LOLA_NUMBER_OF_JOINTS);
 
-    for (size_t i = 0; i < NUM_JOINTS; ++i)
+    for (size_t i = 0; i < LOLA_NUMBER_OF_JOINTS; ++i)
         pk.pack(-1.f);
 
     return buffer;
 }
 
+template<size_t N>
+void msgpackPack(msgpack::packer<msgpack::sbuffer> &pk, const std::array<float, N> &a) {
+    pk.pack_array(a.size());
+    for (const auto &i : a)
+        pk.pack_float(i);
+}
+
+template<size_t N>
+void msgpackPack(msgpack::packer<msgpack::sbuffer> &pk, const bbipc::LEDString<N> &eye) {
+    pk.pack_array(3 * N);
+    for (const auto &i : eye.r)
+        pk.pack_float(i);
+    for (const auto &i : eye.g)
+        pk.pack_float(i);
+    for (const auto &i : eye.b)
+        pk.pack_float(i);
+}
+
+void msgpackPack(msgpack::packer<msgpack::sbuffer> &pk, const bbipc::LEDSingle &led) {
+    pk.pack_array(3);
+    pk.pack_float(led.r);
+    pk.pack_float(led.g);
+    pk.pack_float(led.b);
+}
+
 Connector::Connector(Connector::socket_t &s, const Connector::endpoint_t &e)
-  : sock(s), ep(e), timestamp(-1), bb_shm(bembelbotsShmName + "_9559", true), m_shm(true) {
-    static_assert(lbbNumOfSensorIds == sizeof(sensorNames) / sizeof(*sensorNames));
-    static_assert(lbbNumOfActuatorIds == sizeof(actuatorNames) / sizeof(*actuatorNames));
+  : sock(s)
+  , ep(e)
+  , bb_shm(bembelbotsShmName, true)
+  , m_shm(true)
+  , sensors(sensorMsg.sensors)
+  , actuators(actuatorMsg.actuators) {
+
+    sensorMsg.tick = 0;
+    sensorMsg.timestamp = 0;
+    sensorMsg.lolaTimestamp = 0;
+    sensorMsg.robotConfig = std::make_unique<bbapi::RobotConfigT>();
+    sensorMsg.robotConfig->head = std::make_unique<bbapi::HardwareIdT>();
+    sensorMsg.robotConfig->body = std::make_unique<bbapi::HardwareIdT>();
 }
 
 void Connector::connect() {
@@ -109,46 +160,18 @@ bool Connector::run() {
     if (!running)
         return false;
 
-    size_t pkt_len = sock.receive(boost::asio::buffer(pkt, length));
-    msgpack::object_handle oh = msgpack::unpack(pkt, pkt_len);
-    msgpack::object obj = oh.get();
-
-    // intialize actuators
-    for (int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-        actuators[i] = sensors[i * 3];
-
-    // find robot name
-    for (const auto &[k, val] : obj.via.map) {
-        const auto &key{to_string(k)};
-        if (key != "RobotConfig")
-            continue;
-        const auto &[bodyId, bodyVersion, headId, headVersion] = val.as<std::array<std::string, 4>>();
-        robotName = DEFS::headid2name(headId);
-
-        // update SHM info
-        m_shm.updateRobotInfo(robotName, bodyId, bodyVersion, headId, headVersion);
-        serial.body = bodyId;
-        serial.head = headId;
-        simulator = (robotName == RobotName::SIMULATOR);
-
-        std::cout << std::endl;
-        std::cout << "LoLa connection established on robot \xc2\xbb" << DEFS::enum2botname(robotName) << "\xc2\xab"
-                  << std::endl;
-        std::cout << "Head serial: " << serial.head << std::endl;
-        std::cout << "Body serial: " << serial.body << std::endl;
-        std::cout << std::endl;
-        break;
-    }
+    bool robotConfigReceived{false};
 
     while (running) {
-        pkt_len = sock.receive(boost::asio::buffer(pkt, length), 0, ec);
+        size_t pkt_len = sock.receive(boost::asio::buffer(pkt, length), 0, ec);
         if (ec) {
             std::cerr << __PRETTY_FUNCTION__ << " - socket error, reconnecting: " << ec.message() << std::endl;
             connect();
             continue;
         }
 
-        timestamp = getSystemTimestamp();
+        // update timestamp immediately after packet is received
+        sensorMsg.lolaTimestamp = getSystemTimestamp();
         if (pkt_len < LOLA_PKT_SIZE) {
             std::cerr << __PRETTY_FUNCTION__ << " - received incomplete LoLa msgpack object" << std::endl;
             continue;
@@ -156,7 +179,20 @@ bool Connector::run() {
 
         // create msgpack object & parse sensor values
         msgpack::object_handle oh = msgpack::unpack(pkt, pkt_len);
-        readSensors(oh.get());
+        msgpack::object obj = oh.get();
+
+        readSensors(obj);
+
+        if (!robotConfigReceived) {
+            const auto &rc{*sensorMsg.robotConfig};
+            std::cout << std::endl;
+            std::cout << "LoLa connection established on robot \"" << DEFS::enum2botname(sensorMsg.robotName) << "\""
+                      << std::endl;
+            std::cout << "Head serial: " << rc.head->serial << std::endl;
+            std::cout << "Body serial: " << rc.body->serial << std::endl;
+            std::cout << std::endl;
+            robotConfigReceived = true;
+        }
 
         // generate msgpack object & write to socket
         const auto &buf{writeActuators()};
@@ -168,7 +204,7 @@ bool Connector::run() {
         }
 
         // update monitor SHM values
-        m_shm.updateSensors(sensors);
+        m_shm.updateSensors(sensorMsg);
 
         // check chest button
         buttonHandler();
@@ -184,8 +220,8 @@ bool Connector::run() {
         }
 
         // power off when on battery & charge is less than 10%
-        if (sensors[batteryCurrentSensor] < 0) {
-            if (sensors[batteryChargeSensor] < 0.25f) {
+        if (sensors.battery.current < 0) {
+            if (sensors.battery.charge < 0.25f) {
                 using namespace std::chrono;
                 using namespace std::chrono_literals;
                 using clock = std::chrono::steady_clock;
@@ -199,7 +235,7 @@ bool Connector::run() {
                 }
             }
 
-            if (sensors[batteryChargeSensor] < 0.1f) {
+            if (sensors.battery.charge < 0.1f) {
                 say("Low battery!");
                 toggleFrontend(false);
                 shutdown = true;
@@ -210,7 +246,7 @@ bool Connector::run() {
         waitpid((pid_t)-1, 0, WNOHANG);
     }
 
-    return (shutdown && !simulator);
+    return (shutdown && !sensorMsg.simulator);
 }
 
 void Connector::stop() {
@@ -224,21 +260,22 @@ void Connector::calibrateGyro() {
     static Vector3f prevGyro, gyroOffset, gyroGain;
     static int count;
 
-    if (simulator)
+    if (sensorMsg.simulator)
         return; // don't apply any calibration in webots simulator
 
+    auto &bodySerial = sensorMsg.robotConfig->body->serial;
     if (gyroGain == Vector3f(0, 0, 0)) {
-        if (calibration::body.count(serial.body)) {
-            gyroGain = calibration::body.at(serial.body).gyroGain;
+        if (calibration::body.count(bodySerial)) {
+            gyroGain = calibration::body.at(bodySerial).gyroGain;
             std::cerr << "Using gyro gain calibration: [" << gyroGain[0] << ", " << gyroGain[1] << ", " << gyroGain[2]
                       << "]" << std::endl;
         } else {
             gyroGain = {1, 1, 1};
-            std::cerr << "ERROR: No gyro calibration found for " << serial.body << std::endl;
+            std::cerr << "ERROR: No gyro calibration found for " << bodySerial << std::endl;
         }
     }
 
-    Vector3f g = {sensors[gyroXSensor], sensors[gyroYSensor], sensors[gyroZSensor]};
+    Vector3f g = sensors.imu.gyroscope;
     if (!calibrated) {
         Vector3f d = prevGyro - g;
         // WARNING: LoLa weirdness: we only get new gyro values with every 2nd frame
@@ -263,15 +300,13 @@ void Connector::calibrateGyro() {
     }
 
     // these axis are flipped compared to V5 robots
-    sensors[accYSensor] *= -1;
-    g[2] *= -1;
+    sensors.imu.accelerometer.y() *= -1;
+    sensors.imu.gyroscope.z() *= -1;
 
-    sensors[gyroXSensor] = g[0] * gyroGain[0];
-    sensors[gyroYSensor] = g[1] * gyroGain[1];
-    sensors[gyroZSensor] = g[2] * gyroGain[2];
+    sensors.imu.gyroscope.array() *= gyroGain.array();
 }
 
-void Connector::toggleFrontend(const bool start) {
+void Connector::toggleFrontend(const bool start) const {
     if (start) {
         if (forkexec("/home/nao/bin/jsfrontend")) {
             say("Starting frontend.");
@@ -280,20 +315,20 @@ void Connector::toggleFrontend(const bool start) {
             say("Failed to start frontend.");
         }
     } else {
-        if (frontendConnected)
+        if (sensorMsg.connected)
             say("Stopping frontend.");
         forkexec("/usr/bin/killall", "jsfrontend");
     }
 }
 
 void Connector::buttonHandler() {
-    switch (checkBtnEvent(sensors[chestButtonSensor])) {
+    switch (checkBtnEvent(sensors.touch.chest.button)) {
         case BtnClk::SINGLE:
-            if (!frontendConnected)
+            if (!sensorMsg.connected)
                 toggleFrontend(true);
             break;
         case BtnClk::TRIPPLE:
-            toggleFrontend(!frontendConnected);
+            toggleFrontend(!sensorMsg.connected);
             break;
         case BtnClk::LONG:
             if (!shutdown) {
@@ -314,59 +349,93 @@ void Connector::buttonHandler() {
 }
 
 void Connector::readSensors(const msgpack::object &obj) {
-    static int tick{0};
-    // get reference to write buffer
-    BBSensorData &bbsd{bb_shm->sensors.consumedData()};
-
-    bbsd.tick = tick++;
-    bbsd.robotName = robotName;
-    bbsd.backendType = BackendType_Lola;
-    bbsd.backendVersion = CURRENT_BACKEND_VERSION;
-    bbsd.connected = frontendConnected;
-    bbsd.staticMotionActive = false;
-    bbsd.timestamp = timestamp;
-
-    for (const auto &x : obj.via.map) {
+    for (const auto &e : obj.via.map) {
         // enumerate
-        const auto &key{to_string(x.key)};
-        const auto &map{lola::mapping::sensors.at(key)};
+        const auto &key{to_string(e.key)};
+        const auto &val{e.val};
 
-        assert(map.size() == x.val.via.array.size);
+        if (key == "Stiffness") {
+            sensors.joints.stiffness = val.as<bbipc::JointArray>();
+        } else if (key == "Position") {
+            sensors.joints.position = val.as<bbipc::JointArray>();
+        } else if (key == "Temperature") {
+            sensors.joints.temperature = val.as<bbipc::JointArray>();
+        } else if (key == "Current") {
+            sensors.joints.current = val.as<bbipc::JointArray>();
+        } else if (key == "Status") {
+            sensors.joints.status = val.as<bbipc::JointStatus>();
+        } else if (key == "Battery") {
+            const auto &[charge, status, current, temp] = val.as<std::array<float, 4>>();
+            sensors.battery = {.charge = charge, .current = current, .status = status, .temperature = temp};
+        } else if (key == "Accelerometer") {
+            const auto &[x, y, z] = val.as<std::array<float, 3>>();
+            sensors.imu.accelerometer << x, y, z;
+        } else if (key == "Gyroscope") {
+            const auto &[x, y, z] = val.as<std::array<float, 3>>();
+            sensors.imu.gyroscope << x, y, z;
+        } else if (key == "Angles") {
+            const auto &[x, y] = val.as<std::array<float, 2>>();
+            sensors.imu.angles << x, y;
+        } else if (key == "Sonar") {
+            const auto &[l, r] = val.as<std::array<float, 2>>();
+            sensors.sonar = {l, r};
+        } else if (key == "FSR") {
+            const auto &[lfl, lfr, lrl, lrr, rfl, rfr, rrl, rrr] = val.as<std::array<float, 8>>();
+            sensors.fsr.left.arr = {lfl, lfr, lrl, lrr};
+            sensors.fsr.right.arr = {rfl, rfr, rrl, rrr};
+        } else if (key == "Touch") {
+            const auto &a = val.as<std::array<float, 14>>();
+            sensors.touch.chest.button = a[0];
+            sensors.touch.head = {a[1], a[2], a[3]};
+            sensors.touch.feet.left = {a[4], a[5]};
+            sensors.touch.hands.left = {a[6], a[7], a[8]};
+            sensors.touch.feet.right = {a[9], a[10]};
+            sensors.touch.hands.right = {a[11], a[12], a[13]};
+        } else if (key == "RobotConfig") {
+            const auto &[bodyId, bodyVersion, headId, headVersion] = val.as<std::array<std::string, 4>>();
+            auto robotName = DEFS::headid2name(headId);
 
-        int i{-1};
-        for (const auto &v : x.val.via.array) {
-            ++i;
-            if (map[i] < 0) // value ignored
-                continue;
-            sensors[map[i]] = v.as<float>();
+            sensorMsg.robotName = DEFS::headid2name(headId);
+            sensorMsg.simulator = (robotName == RobotName::SIMULATOR);
+            sensorMsg.backendVersion = BB_BACKEND_VERSION;
+
+            auto &rc = *sensorMsg.robotConfig;
+            rc.head->serial = headId;
+            rc.head->version = headVersion;
+            rc.body->serial = bodyId;
+            rc.body->version = bodyVersion;
+        } else {
+            std::cerr << "Error: unhandled key '" << key << "' in LoLa sensor message!" << std::endl;
+            exit(69);
         }
     }
 
     calibrateGyro();
 
-    // emulate FSR total sensors
-    sensors[lFSRTotalSensor] = sensors[lFSRFrontLeftSensor] + sensors[lFSRFrontRightSensor] +
-                               sensors[lFSRRearLeftSensor] + sensors[lFSRRearRightSensor];
-    sensors[rFSRTotalSensor] = sensors[rFSRFrontLeftSensor] + sensors[rFSRFrontRightSensor] +
-                               sensors[rFSRRearLeftSensor] + sensors[rFSRRearRightSensor];
-
-    std::copy(sensors.begin(), sensors.end(), std::begin(bbsd.sensors));
+    auto &ipc{bb_shm->sensors.consumedData()};
+    if (!ipc.set(sensorMsg)) {
+        std::cerr << "Error: sensor message flatbuffer exceeds SHM size!" << std::endl;
+        exit(4);
+    }
 
     // swap SHM buffers
     bb_shm->sensors.consume();
+
+    // increase sensor tick
+    ++sensorMsg.tick;
 
     //std::cerr << std::endl << obj << std::endl;
 }
 
 void Connector::setIdleLeds() {
     static const std::vector<float> gamma{0, 0.01, 0.05, 0.15, 0.3, 0.45, 0.6, 0.8, 1, 1};
-    static int c{0}, idx{0}, inc{1};
+    static size_t c{0};
+    static int idx{0}, inc{1};
 
-    for (size_t i = headLedRearLeft0Actuator; i <= headLedMiddleLeft0Actuator; ++i)
-        actuators[i] = gamma[idx];
+    actuators.led.skull.fill(gamma[idx]);
 
     // blink brain leds as soon as gyro is calibrated
-    if (c > 9 && calibrated) {
+    if (c > gamma.size() && calibrated) {
         c = 0;
         idx += inc;
         if (idx < 0) {
@@ -379,99 +448,115 @@ void Connector::setIdleLeds() {
     }
     ++c;
 
-    // ears: used as battery indicator
-    for (int i = 0; i < 10; ++i) {
-        actuators[earsLedLeft0DegActuator + i] = actuators[earsLedRight324DegActuator - i] =
-                (sensors[batteryChargeSensor] > (i - 1) / 10.f) * !shutdown;
-    }
-
     // chest button: green when charging, off on battery
-    if (sensors[batteryCurrentSensor] > 0) {
-        actuators[chestBoardLedRedActuator] = actuators[chestBoardLedBlueActuator] = 0;
-        actuators[chestBoardLedGreenActuator] = 0.25;
-    } else {
-        actuators[chestBoardLedRedActuator] = actuators[chestBoardLedGreenActuator] =
-                actuators[chestBoardLedBlueActuator] = 0;
-    }
+    if (sensors.battery.current > 0)
+        actuators.led.chest = {0, 0.25f, 0};
+    else
+        actuators.led.chest = {0, 0, 0};
 
     // eyes: white when running, off when shutdown has been initiated
-    for (size_t i = faceLedRedLeft0DegActuator; i <= faceLedBlueRight315DegActuator; ++i)
-        actuators[i] = !shutdown;
+    actuators.led.eyes.left.fill(!shutdown);
+    actuators.led.eyes.right.fill(!shutdown);
+}
+
+void Connector::setEarLeds() {
+    // ears: used as battery indicator
+    const size_t n{actuators.led.ears.left.size()};
+    for (size_t i = 0; i < n; ++i) {
+        actuators.led.ears.left[i] = actuators.led.ears.right[i] =
+                (sensors.battery.charge > (i - 1) / float(n)) * !shutdown;
+    }
 }
 
 msgpack::sbuffer &Connector::writeActuators() {
-    // get reference to write buffer
-    bb_shm->actuators.timedProduce(10);
-    const BBActuatorData &bbad{bb_shm->actuators.producedData()};
+    bb_shm->actuators.timedProduce(11);
+    const auto &ipc{bb_shm->actuators.producedData()};
+
+    // use temporary buffer, to avoid issues with old data in tripple buffer if frontend is not running
+    bbapi::BembelIpcActuatorMessageT am;
+    if (!ipc.get(am)) {
+        // SHM does not contain valid flatbuffer after creation, so silently ignore error until we are connected
+        std::cerr << "Error: invalid actuator message flatbuffer received." << std::endl;
+        exit(2);
+    }
 
     // check if frontend has increased actuator tick
-    static int last_tick{-1}, connCnt{0};
-    if (bbad.tick != last_tick) {
-        last_tick = bbad.tick;
-        connCnt = std::min(connCnt + 1, 15);
-    } else {
-        connCnt = std::max(connCnt - 1, 0);
+    if (am.tick != last_tick) {
+        last_tick = actuatorMsg.tick;
+        actuatorMsg = am;
+        connCnt = std::min(connCnt + 1, 15U);
+    } else if (connCnt > 0) {
+        --connCnt;
     }
 
     // assume frontend is connected after 10 ticks
-    if (!frontendConnected && (connCnt > 10)) {
-        frontendConnected = true;
+    if (!sensorMsg.connected && (connCnt > 10)) {
+        sensorMsg.connected = true;
         std::cout << "New frontend connection established." << std::endl;
-    } else if (frontendConnected && (connCnt == 0)) {
-        frontendConnected = false;
+    } else if (sensorMsg.connected && (connCnt == 0)) {
+        sensorMsg.connected = false;
         std::cout << "Lost frontend connection." << std::endl;
     }
 
-    if (frontendConnected) {
+    if (sensorMsg.connected) {
         sitDone = false;
-
-        // copy to local buffer
-        std::copy(std::begin(bbad.actuators), std::begin(bbad.actuators) + lbbNumOfActuatorIds, actuators.begin());
-
-        // normalize LED values to [0..1] instead of [0..255] expected by NaoQi
-        for (int i = faceLedRedLeft0DegActuator; i <= rFootLedBlueActuator; ++i)
-            actuators[i] /= 255.f;
     } else { // no frontend connected
         // set status LEDs
         setIdleLeds();
 
         // check if torso is upright
-        if (std::max(std::abs(sensors[angleXSensor]), std::abs(sensors[angleYSensor])) < 1) {
+        if (std::max(std::abs(sensors.imu.angles.x()), std::abs(sensors.imu.angles.y())) < 0.3f) {
             // move to sit pose
             if (!sitDone)
-                sitDone = sit(sensors.data(), actuators.data());
+                sitDone = sit(sensors, actuators);
         } else {
             // unstiff all joints
-            stiffness(-1);
+            actuators.joints.stiffness.fill(-1);
+            actuators.joints.position = sensors.joints.position;
             sitDone = false;
         }
     }
+    
+    setEarLeds();
 
     // create msgpack buffer
     static msgpack::sbuffer buffer;
     buffer.clear();
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
 
-    pk.pack_map(lola::mapping::actuators.size());
+    pk.pack_map(LOLA_ACTUATOR_NAMES.size());
 
-    static const std::string SONAR{"Sonar"};
-    for (const auto &[chain, values] : lola::mapping::actuators) {
-        // sonar need be handled separately, since it's bool, not float
-        if (chain == SONAR)
-            continue;
-
-        pk.pack(chain);
-        pk.pack_array(values.size());
-        for (const auto &i : values)
-            pk.pack(actuators[i]);
+    for (const auto &name : LOLA_ACTUATOR_NAMES) {
+        pk.pack(name);
+        if (name == "Position") {
+            msgpackPack(pk, actuators.joints.position);
+        } else if (name == "Stiffness") {
+            msgpackPack(pk, actuators.joints.stiffness);
+        } else if (name == "REar") {
+            msgpackPack(pk, actuators.led.ears.right);
+        } else if (name == "LEar") {
+            msgpackPack(pk, actuators.led.ears.left);
+        } else if (name == "Chest") {
+            msgpackPack(pk, actuators.led.chest);
+        } else if (name == "LEye") {
+            msgpackPack(pk, actuators.led.eyes.left);
+        } else if (name == "REye") {
+            msgpackPack(pk, actuators.led.eyes.right);
+        } else if (name == "LFoot") {
+            msgpackPack(pk, actuators.led.feet.left);
+        } else if (name == "RFoot") {
+            msgpackPack(pk, actuators.led.feet.right);
+        } else if (name == "Skull") {
+            msgpackPack(pk, actuators.led.skull);
+        } else if (name == "Sonar") {
+            pk.pack_array(2);
+            pk.pack(actuators.sonar.left);
+            pk.pack(actuators.sonar.right);
+        } else {
+            std::cerr << "Error: no handler for actuator chain '" << name << "' defined!" << std::endl;
+            exit(3);
+        }
     }
-
-    // add sonar actuators
-    pk.pack(SONAR);
-    const auto &s{lola::mapping::actuators.at(SONAR)};
-    pk.pack_array(s.size());
-    for (const auto &i : s)
-        pk.pack(actuators[i] > 0); // lola only has on/off for sonar
 
     //std::cerr << std::endl << msgpack::unpack(buffer.data(), buffer.size()).get() << std::endl;
     return buffer;
@@ -482,11 +567,6 @@ void Connector::say(const std::string &text) {
 
     std::cout << "[TTS] " << text << std::endl;
     tts.say(text, SPD_IMPORTANT);
-}
-
-void Connector::stiffness(const float &v) {
-    for (const auto &i : mapping::sensors.at("Stiffness"))
-        actuators[i] = v;
 }
 
 } // namespace lola

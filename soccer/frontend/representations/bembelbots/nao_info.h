@@ -3,17 +3,10 @@
 //
 
 #pragma once
+#include "ipc_sensor_message_generated.h"
 #include <string>
 #include <utility>
-#include <libbembelbots/bembelbots.h>
-
-namespace ipc {
-template<typename T>
-class TrippleBuffer;
-}
-
-class BBSensorData;
-
+#include <libbembelbots/bembelbots_shm.h>
 
 struct NaoInfo {
     explicit NaoInfo() = default;
@@ -21,15 +14,10 @@ struct NaoInfo {
     std::string getName() const;
     std::string getHostname() const;
 
-    RobotName getNameId() const;
-    BackendType getBackendType() const;
-    RobotVersion getRobotVersion() const;
-    RobotType getRobotType() const;
+    bbapi::RobotName getNameId() const;
 
-    RobotName robotName = RobotName::UNKNOWN;
-    BackendType backendType = BackendType::BackendType_Naoqi;
+    bbapi::RobotName robotName = bbapi::RobotName::UNKNOWN;
     std::string robotNameStr = "unknown";
-    int instance;
 };
 
 
@@ -47,8 +35,9 @@ struct NaoInfoResult {
 class NaoInfoReader {
 public:
     explicit NaoInfoReader() = default;
-    NaoInfoResult getNaoInfo(const int &instance, bool docker = false);
+    NaoInfoResult getNaoInfo(bool docker = false);
 private:
-    bool getSensors(ipc::TrippleBuffer<BBSensorData> &reader, BBSensorData *data);
+    using ipcType = ipc::TrippleBuffer<BembelbotsShmFlatbuffer<bbapi::BembelIpcSensorMessage>>;
+    bool getSensors(ipcType &reader, bbapi::BembelIpcSensorMessageT &sensorMsg);
     int failCount = 0;
 };

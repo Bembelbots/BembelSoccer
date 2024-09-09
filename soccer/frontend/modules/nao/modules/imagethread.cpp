@@ -1,13 +1,18 @@
-
 #include "imagethread.h"
 #include <future>
+#include <cstdlib>
 #include "../camera/image_buffer.h"
 #include "../camera/naocameras.h"
 #include "../camera/cameraconfig.h"
 #include <framework/util/clock.h>
 #include <representations/blackboards/camera_calibration.h>
+#include <stdexcept>
+#include <thread>
 
-void ImageThread::setCamPose(CamImage &img, camPose &cp) {
+using namespace std::chrono_literals;
+using std::this_thread::sleep_for;
+
+void ImageThread::setCamPose(CamImage &img, CamPose &cp) {
     CameraCalibrationBlackboard *cal;
 
     // choose correct camPose & calibration blackboard
@@ -29,8 +34,10 @@ void ImageThread::connect(rt::Linker &link) {
     link.name = "ImageThread";
     link(settings);
     link(nao_states);
+    link(game_state);
     link(nao_info);
     link(image_provider);
+    link(camPose);
     link(cmds);
 }
 
@@ -41,19 +48,15 @@ void ImageThread::setup() {
     topCameraCalibration = std::make_unique<CameraCalibrationBlackboard>(name, "cameraCalibrationTop");
     bottomCameraCalibration = std::make_unique<CameraCalibrationBlackboard>(name, "cameraCalibrationBottom");
     cameraParameters = std::make_unique<CameraParametersBlackboard>();
-    cameras = std::make_shared<NaoCameras>(settings->simulator);
-    CameraConfig::setCameras(cameras);
 
-    {
-        // std::future destructor takes care of wait()
+    image_provider->top.initialize(150, TOP_CAMERA, settings->simulator);
+    image_provider->bottom.initialize(150, BOTTOM_CAMERA, settings->simulator);
 
-        // initializing cameras takes quite a while, so let's do it in parallel
-        auto f1 = std::async(&NaoCameras::openCamera, cameras, TOP_CAMERA, settings->simulatorHost, settings->docker);
-        auto f2 = std::async(&NaoCameras::openCamera, cameras, BOTTOM_CAMERA, settings->simulatorHost, settings->docker);
-    }
+    CameraConfig::setCameras([=](){
+        return cameras.get();
+    });
 
-    image_provider->top.initialize(500, TOP_CAMERA, settings->simulator);
-    image_provider->bottom.initialize(500, BOTTOM_CAMERA, settings->simulator);
+    resetCameras(false);
 
     LOG_INFO << "ImageProvider: started the cameras";
 }
@@ -87,18 +90,15 @@ void ImageThread::checkCameraParameters(bool force = false) {
 
 void ImageThread::process() {
     static bool once = false;
-    if (!cameras->initialized()) {
-        LOG_WARN_EVERY_N(10) << "cameras not initalized";
-        return;
-    }
 
-    if(!once) {
+    if (!cameras->initialized())
+        initCameras();
+    
+    if (!once) {
         once = true;
         checkCameraParameters(true);
         return;
     }
-
-    cmds.update();
 
     // updating camera parameters can take a while so lets do it in the background :D
     auto _ = std::async(&ImageThread::checkCameraParameters, this, false);
@@ -107,8 +107,25 @@ void ImageThread::process() {
     CamImage &tImg = image_provider->top.getCaptureBuffer();
     CamImage &bImg = image_provider->bottom.getCaptureBuffer();
 
-    cameras->top->fetchImage(tImg); 
-    cameras->bottom->fetchImage(bImg);
+    bool has_image = false;
+    int reset_counter = 0;
+
+    while(!has_image) {
+        if(reset_counter >= 3) {
+            throw std::runtime_error("Camera reset failed after too many tries");
+        }
+        try {
+            cameras->top->fetchImage(tImg); 
+            cameras->bottom->fetchImage(bImg);
+            has_image = true;
+        } catch (...) {
+            resetCameras();
+            sleep_for(1s);
+            initCameras();
+            once = false;
+        }
+        reset_counter++;
+    }
 
     // no body states available, wait for next one
     if (bs_dq.empty())
@@ -144,6 +161,11 @@ void ImageThread::process() {
     setCamPose(bImg, bottomState.bCamPose);
     image_provider->bottom.releaseCaptureBuffer();
 
+    bbapi::CamPoseMessageT cpm;
+    cpm.top = topState.tCamPose;
+    cpm.bottom = bottomState.bCamPose;
+    camPose.emit(cpm);
+
     // prune queue
     while (bs_dq.front().lola_timestamp < std::min(topState.lola_timestamp, bottomState.lola_timestamp))
         bs_dq.pop_front();
@@ -155,6 +177,30 @@ void ImageThread::process() {
                 << "ImageProvider: BodyState for top camera out of sync!";
         LOG_ERROR_IF(std::abs(bImg.timestamp - bottomState.lola_timestamp) > limit)
                 << "ImageProvider: BodyState for bottom camera out of sync!";
+    }
+
+
+    // TODO: GIANT HACK, PLEASE FIX
+    static int realTopBrightness = -1;
+    static int realContrast = -1;
+    static int realSaturation = -1;
+    static bool hasStandbyParameters = false;
+    if (game_state->gameStateReal == bbapi::GameState::STANDBY && !hasStandbyParameters) {
+        realTopBrightness = cameraParameters->brightnessTop;
+        realContrast = cameraParameters->contrast;
+        realSaturation = cameraParameters->saturation;
+        LOG_DEBUG << "Setting standby camera parameters";
+        cameraParameters->brightnessTop = 10;
+        cameraParameters->contrast = 20;
+        cameraParameters->saturation = 30;
+        hasStandbyParameters = true;
+    }
+    if (game_state->gameStateReal != bbapi::GameState::STANDBY && hasStandbyParameters) {
+        LOG_DEBUG << "Unsetting standby camera parameters";
+        cameraParameters->brightnessTop = realTopBrightness;
+        cameraParameters->contrast = realContrast;
+        cameraParameters->saturation = realSaturation;
+        hasStandbyParameters = false;
     }
 }
 
@@ -172,28 +218,25 @@ void ImageThread::stop() {
     LOG_INFO << "image thread stopped";
 }
 
-/*
-int ImageProvider::getParameter(const int &camera, CameraOption option) {
-    if (!_topCam || !_bottomCam) {
-        LOG_WARN << "ImageProvider: cameras not ready for parameter change";
-        return -1;
-    }
-    if (camera == TOP_CAMERA) {
-        return _topCam->getParameter(option);
-    }
-    return _bottomCam->getParameter(option);
+void ImageThread::initCameras() {
+    // initializing cameras takes quite a while, so let's do it in parallel
+    auto f1 = std::async(&NaoCameras::openCamera, cameras, TOP_CAMERA, settings->simulatorHost, settings->docker);
+    auto f2 = std::async(&NaoCameras::openCamera, cameras, BOTTOM_CAMERA, settings->simulatorHost, settings->docker);
+    // std::future destructor takes care of wait()
 }
 
-void ImageProvider::setParameter(const int &camera, CameraOption option, const int &value) {
-    if (!_topCam || !_bottomCam) {
-        LOG_WARN << "ImageProvider: cameras not ready for parameter change";
-        return;
+void ImageThread::resetCameras(bool do_say) {
+    LOG_WARN << "resetting cameras";
+    try {
+        cameras.reset();
+        if (!settings->simulator)
+            std::system("/opt/aldebaran/libexec/reset-cameras.sh toggle");
+        cameras = std::make_shared<NaoCameras>(settings->simulator);
+    } catch (...) {
+        // do nothing
     }
-
-    if (camera == TOP_CAMERA) {
-        _topCam->setParameter(option, value);
-    } else {
-        _bottomCam->setParameter(option, value);
+    
+    if(do_say) {
+        LOG_SAY << "camera reset";
     }
 }
-*/

@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <vector>
 #include <functional>
+#include <thread>
 
 namespace rt {
 
@@ -41,6 +42,22 @@ public:
     RT_DISABLE_COPY(Module)
 
     void process() override = 0;
+};
+
+class SimpleModule : public ModuleBase {
+public:
+    SimpleModule() = default;
+    virtual ~SimpleModule() = default;
+
+    RT_DISABLE_COPY(SimpleModule)
+
+    void process() override {
+        using std::this_thread::sleep_for;
+        sleep_for(sleep_duration);
+    }
+
+private:
+    std::chrono::milliseconds sleep_duration { 100 };
 };
 
 class NoThreadModule : public ModuleBase {

@@ -2,7 +2,11 @@
 // Created by felix on 21.04.18.
 //
 
+#include <algorithm> 
+
 #include "body_interface.h"
+#include "lola_names_generated.h"
+#include "representations/flatbuffers/types/sensors.h"
 
 const std::string BodyInterface::blackboardName = "BodyInterface";
 
@@ -44,88 +48,104 @@ BodyInterface::BodyInterface()
 }
 
 void BodyInterface::update(const BodyState &body) {
+    const auto &s{body.sensors};
+
     if (DEBUG_ON(resetMcs)) {
         DEBUG_ON(resetMcs) = false;
         odoResetPos = body.odometry;
     }
     mcs = body.odometry - odoResetPos;
 
-    accel = body.accel;
-    gyro = body.gyro;
+    accel = body.sensors.imu.accelerometer;
+    gyro = body.sensors.imu.gyroscope;
     bodyAngles = body.bodyAngles;
 
     fallenSide = enumToStr(body.fallenSide);
 
-    lFSRTotal = body.sensors[lFSRTotalSensor];
-    rFSRTotal = body.sensors[rFSRTotalSensor];
+    lFSRTotal = 0;
+    for (float f: s.fsr.left.arr)
+        lFSRTotal += f;
 
-    lBumper = body.sensors[lBumperLeftSensor] + 2 * body.sensors[lBumperRightSensor];
-    rBumper = body.sensors[rBumperLeftSensor] + 2 * body.sensors[rBumperRightSensor];
+    rFSRTotal = 0;
+    for (float f: s.fsr.right.arr)
+        rFSRTotal += f;
 
-    maxTempHead = getMaxSensor(body, {headYawTemperatureSensor, headPitchTemperatureSensor});
+    const auto &f{s.touch.feet};
+    lBumper = f.left.bumper_left + 2 * f.left.bumper_right;
+    rBumper = f.right.bumper_left + 2 * f.right.bumper_right;
 
-    maxTempArmR = getMaxSensor(body,
-            {rShoulderPitchTemperatureSensor,
-                    rShoulderRollTemperatureSensor,
-                    rElbowYawTemperatureSensor,
-                    rElbowRollTemperatureSensor,
-                    rWristYawTemperatureSensor});
-    maxTempArmL = getMaxSensor(body,
-            {lShoulderPitchTemperatureSensor,
-                    lShoulderRollTemperatureSensor,
-                    lElbowYawTemperatureSensor,
-                    lElbowRollTemperatureSensor,
-                    lWristYawTemperatureSensor});
+    const auto &temp{s.joints.temperature};
+    maxTempHead = getMaxSensor(temp, {JointNames::HeadYaw, JointNames::HeadPitch});
 
-    maxTempLegR = getMaxSensor(body,
-            {rHipRollTemperatureSensor,
-                    rKneePitchTemperatureSensor,
-                    rAnklePitchTemperatureSensor,
-                    rAnkleRollTemperatureSensor});
-    maxTempLegL = getMaxSensor(body,
-            {lHipYawPitchTemperatureSensor,
-                    lHipRollTemperatureSensor,
-                    lKneePitchTemperatureSensor,
-                    lAnklePitchTemperatureSensor,
-                    lAnkleRollTemperatureSensor});
+    maxTempArmR = getMaxSensor(temp,
+            {JointNames::RShoulderPitch,
+                JointNames::RShoulderRoll,
+                JointNames::RElbowYaw,
+                JointNames::RElbowRoll,
+                JointNames::RWristYaw});
 
-    maxCurrentHead = getMaxSensor(body, {headYawCurrentSensor, headPitchCurrentSensor});
+    maxTempArmL = getMaxSensor(temp,
+            {JointNames::LShoulderPitch,
+                JointNames::LShoulderRoll,
+                JointNames::LElbowYaw,
+                JointNames::LElbowRoll,
+                JointNames::LWristYaw});
 
-    maxCurrentArmR = getMaxSensor(body,
-            {rShoulderPitchCurrentSensor,
-                    rShoulderRollCurrentSensor,
-                    rElbowYawCurrentSensor,
-                    rElbowRollCurrentSensor,
-                    rWristYawCurrentSensor});
-    maxCurrentArmL = getMaxSensor(body,
-            {lShoulderPitchCurrentSensor,
-                    lShoulderRollCurrentSensor,
-                    lElbowYawCurrentSensor,
-                    lElbowRollCurrentSensor,
-                    lWristYawCurrentSensor});
+    maxTempLegR = getMaxSensor(temp,
+            {JointNames::RHipRoll,
+                JointNames::RKneePitch,
+                JointNames::RAnklePitch,
+                JointNames::RAnkleRoll});
 
-    maxCurrentLegR = getMaxSensor(
-            body, {rHipRollCurrentSensor, rKneePitchCurrentSensor, rAnklePitchCurrentSensor, rAnkleRollCurrentSensor});
-    maxCurrentLegL = getMaxSensor(body,
-            {lHipYawPitchCurrentSensor,
-                    lHipRollCurrentSensor,
-                    lKneePitchCurrentSensor,
-                    lAnklePitchCurrentSensor,
-                    lAnkleRollCurrentSensor});
+    maxTempLegL = getMaxSensor(temp,
+            {JointNames::LHipYawPitch,
+                JointNames::LHipRoll,
+                JointNames::LKneePitch,
+                JointNames::LAnklePitch,
+                JointNames::LAnkleRoll});
 
-    batteryCharge = body.sensors[batteryChargeSensor];
-    batteryCurrent = body.sensors[batteryCurrentSensor];
-    batteryTemperature = body.sensors[batteryTemperatureSensor];
+    const auto &curr{s.joints.current};
+    maxCurrentHead = getMaxSensor(curr, {JointNames::HeadPitch, JointNames::HeadYaw});
 
-    lSonar = body.sensors[lUsSensor];
-    rSonar = body.sensors[rUsSensor];
+    maxCurrentArmR = getMaxSensor(curr,
+            {JointNames::RShoulderPitch,
+                JointNames::RShoulderRoll,
+                JointNames::RElbowYaw,
+                JointNames::RElbowRoll,
+                JointNames::RWristYaw});
+
+    maxCurrentArmL = getMaxSensor(curr,
+         {JointNames::LShoulderPitch,
+                JointNames::LShoulderRoll,
+                JointNames::LElbowYaw,
+                JointNames::LElbowRoll,
+                JointNames::LWristYaw});
+
+    maxCurrentLegR = getMaxSensor(curr,
+            {JointNames::RHipRoll,
+                JointNames::RKneePitch,
+                JointNames::RAnklePitch,
+                JointNames::RAnkleRoll});
+
+    maxCurrentLegL = getMaxSensor(curr,
+            {JointNames::LHipYawPitch,
+                JointNames::LHipRoll,
+                JointNames::LKneePitch,
+                JointNames::LAnklePitch,
+                JointNames::LAnkleRoll});
+
+    batteryCharge = s.battery.charge;
+    batteryCurrent = s.battery.current;
+    batteryTemperature = s.battery.temperature;
+
+    lSonar = s.sonar.left;
+    rSonar = s.sonar.right;
 }
 
-float BodyInterface::getMaxSensor(const BodyState &body, const std::vector<int> &sensors) {
+float BodyInterface::getMaxSensor(const bbipc::JointArray &ja, const std::vector<bbapi::JointNames> &sensors) {
     float max{-1000};
-    for (const int &i : sensors)
-        if (body.sensors[i] > max)
-            max = body.sensors[i];
+    for (const bbapi::JointNames &i : sensors)
+        max = std::max(max, ja[int(i)]);
     return max;
 }
 

@@ -1,73 +1,49 @@
 #pragma once
+
+#include "framework/joints/joints.hpp"
+#include "lola_names_generated.h"
 #include <array>
-#include "bembelbots.h"
 
-static float sit(const float *sensors, float *actuators) {
-    static const std::array<float, lbbNumOfPositionActuatorIds> sitDownAngles{
-        0.f,
-        0.f,
+#include <representations/flatbuffers/types/actuators.h>
+#include <representations/flatbuffers/types/sensors.h>
 
-        1.64f,
-        0.f,
-        -1.17f,
-        -1.25f,
-        -1.57f,
-        0.f,
+#include <framework/joints/special_stances.hpp>
 
-        1.64f,
-        0.f,
-        1.17f,
-        1.25f,
-        1.57f,
-        0.f,
+static bool sit(const bbipc::Sensors &sensors, bbipc::Actuators &actuators) {
+    static int time{0};
+    static joints::Linear<joints::pos::All> motion;
+    joints::pos::All jpos(sensors);
+    joints::stiffness::All stiff;
 
-        0.f,
-
-        0.f,
-        -0.87f,
-        2.11f,
-        -1.18f,
-        0.f,
-
-        0.f,
-        -0.87f,
-        2.11f,
-        -1.18f,
-        0.f
-    };
-    static std::array<float, lbbNumOfPositionActuatorIds> startAngles;
-    static float phase{0};
-
-    if (phase == 0)
-        for (int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-            startAngles[i] = sensors[i * 3];
+    if (time == 0) {
+        stiff.fill(0.6);
+        stiff.write(actuators);
         
-    for (int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-        actuators[headYawHardnessActuator + i] = 0.6f;
+        motion.setStart(0);
+        motion.setDuration(1000);
 
-    phase = std::min(phase + 0.01f, 1.0f);
+        motion.setFrom(jpos);
 
-    for (int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-        actuators[i] =  phase * sitDownAngles[i] + (1.0f - phase) * startAngles[i];
+        motion.setTo(SIT_STANCE);
+    }
 
-    if (phase >= 1.0f) {
-        for(int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-            actuators[headYawHardnessActuator + i] = -1;
+    jpos = motion.get(time);
+    jpos.write(actuators);
 
-        // set actuators to sensor angles to relax  any joints,
-        // that could not reach their target
-        for (int i = 0; i < lbbNumOfPositionActuatorIds; ++i)
-            actuators[i] = sensors[i * 3];
+    if (motion.done(time)) {
+        time = 0;
+
+        stiff.fill(-1);
+        stiff[JointNames::LHipPitch] = stiff[JointNames::RHipPitch] = 0.15f;
+        stiff.write(actuators);
         
-        actuators[lHipPitchHardnessActuator] = actuators[rHipPitchHardnessActuator] = 0.15f;
-        //actuators[lHipYawPitchHardnessActuator] = 0.05f;
-
-        phase = 0;
+        actuators.joints.position = sensors.joints.position;
+        
         return true;
     }
 
+    time += 10;
     return false;
 }
-
 
 // vim: set ts=4 sw=4 sts=4 expandtab:

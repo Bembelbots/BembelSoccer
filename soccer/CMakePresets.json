@@ -21,6 +21,20 @@
             "targets": [ "framework", "all" ]
         },
         {
+            "name": "flatbuffers",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "v6",
+            "targets": [ "bbrepr_flatbuffers" ]
+        },
+        {
+            "name": "debugtools",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "v6",
+            "targets": [ "playingfield_debug", "whistledebug", "behavior_graph" ]
+        },
+        {
             "name": "custom",
             "description": "",
             "displayName": "",

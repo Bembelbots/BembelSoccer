@@ -1,6 +1,7 @@
 #include "v6videosource.h"
 
 #include <chrono>
+#include <exception>
 #include <thread>
 #include <filesystem>
 #include <system_error>
@@ -41,11 +42,12 @@ V6VideoSource::V6VideoSource(const int &cam_id) {
     dev /= isTopCam ? "video-top" : "video-bottom";
 
     std::error_code ec;
-    while (!fs::exists(dev, ec)) {
-        sleep_for(1ms);
-        LOG_INFO_EVERY_N(1000) << "Waiting for camera device: " << dev;
-        static int c = 0;
-        if (++c > 5000)
+    int c = 0;
+    // `dev` must be a character device (or a symlink pointing to one)
+    while (fs::status(dev).type() != fs::file_type::character) { 
+        sleep_for(10ms);
+        LOG_INFO_EVERY_N(100) << "Waiting for camera device: " << dev;
+        if (++c > 2000)
             throw std::runtime_error("Error: could not open camera device " + dev.string());
     }
 
@@ -70,18 +72,28 @@ V6VideoSource::V6VideoSource(const int &cam_id) {
         cam->setExtUnit(cam->HORIZONTAL_FLIP, 1);  // enable Horizontal Flip
         cam->setExtUnit(cam->VERTICAL_FLIP, 1);    // enable Vertical Flip
     }
-
-    imgbuf = new uint8_t[cam->bufferSize()];
 }
 
 V6VideoSource::~V6VideoSource() {
     delete cam;
-    delete[] imgbuf;
 }
 
 void V6VideoSource::fetchImage(CamImage &dst) {
     dst.camera = getCamera();
-    dst.timestamp = cam->getImage(dst.data);
+    static constexpr int MAX_TRIES{3};
+    int errCount{0};
+
+    for (;;) {
+        try {
+            dst.timestamp = cam->getImage(dst.data);
+            break;
+        } catch (std::exception &e) {
+            LOG_ERROR << __PRETTY_FUNCTION__ << " - failed to fetch image: " << e.what();
+            if (errCount++ > MAX_TRIES)
+                throw;
+        }
+    }
+
     if (dst.timestamp < 1) {
         dst.timestamp = getSystemTimestamp();
         // first few frames are usually missing timestamps, so silently ignore errors if framework is running for less than 5s

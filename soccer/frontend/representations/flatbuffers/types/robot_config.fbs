@@ -1,0 +1,11 @@
+namespace bbapi;
+
+table HardwareId (native_inline) {
+    serial: string;
+    version: string;
+}
+
+table RobotConfig (native_inline) {
+    head: HardwareId;
+    body: HardwareId;
+}

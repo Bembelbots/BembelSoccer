@@ -1,38 +1,31 @@
 #pragma once
 
-#include "details/actuators.hpp"
 #include "details/cubic.hpp"
 #include "details/interpolation.hpp"
 #include "details/linear.hpp"
 #include "details/operators.hpp"
 #include "details/pos.hpp"
-#include "details/sensors.hpp"
 #include "details/stiffness.hpp"
-#include "details/tags.hpp"
 #include "details/current.hpp"
 #include "details/status.hpp"
 #include "details/temperature.hpp"
 
+#include <representations/flatbuffers/types/lola_names.h>
+
 namespace joints {
 
-using details::Actuators;
 using details::Cubic;
 using details::each;
 using details::feq;
-using details::fromActuators;
-using details::fromArray;
-using details::fromSensors;
 using details::Interpolation;
 using details::Joints;
 using details::Linear;
 using details::Mask;
 using details::Pos;
-using details::Sensors;
 using details::Stiffness;
 using details::Current;
 using details::Status;
 using details::Temperature;
-using details::toActuators;
 
 // clang-format off
 namespace pos {
@@ -44,7 +37,7 @@ using LElbowYaw      = Pos<Mask::LElbowYaw>;
 using LElbowRoll     = Pos<Mask::LElbowRoll>;
 using LWristYaw      = Pos<Mask::LWristYaw>;
 using LHand          = Pos<Mask::LHand>;
-using HipYawPitch    = Pos<Mask::HipYawPitch>;
+using HipYawPitch    = Pos<Mask::LHipYawPitch>;
 using LHipRoll       = Pos<Mask::LHipRoll>;
 using LHipPitch      = Pos<Mask::LHipPitch>;
 using LKneePitch     = Pos<Mask::LKneePitch>;
@@ -85,7 +78,7 @@ namespace current {
     using LElbowRoll     = Current<Mask::LElbowRoll>;
     using LWristYaw      = Current<Mask::LWristYaw>;
     using LHand          = Current<Mask::LHand>;
-    using HipYawPitch    = Current<Mask::HipYawPitch>;
+    using HipYawPitch    = Current<Mask::LHipYawPitch>;
     using LHipRoll       = Current<Mask::LHipRoll>;
     using LHipPitch      = Current<Mask::LHipPitch>;
     using LKneePitch     = Current<Mask::LKneePitch>;
@@ -126,7 +119,7 @@ namespace status {
     using LElbowRoll     = Status<Mask::LElbowRoll>;
     using LWristYaw      = Status<Mask::LWristYaw>;
     using LHand          = Status<Mask::LHand>;
-    using HipYawPitch    = Status<Mask::HipYawPitch>;
+    using HipYawPitch    = Status<Mask::LHipYawPitch>;
     using LHipRoll       = Status<Mask::LHipRoll>;
     using LHipPitch      = Status<Mask::LHipPitch>;
     using LKneePitch     = Status<Mask::LKneePitch>;
@@ -168,7 +161,7 @@ using LElbowYaw      = Temperature<Mask::LElbowYaw>;
 using LElbowRoll     = Temperature<Mask::LElbowRoll>;
 using LWristYaw      = Temperature<Mask::LWristYaw>;
 using LHand          = Temperature<Mask::LHand>;
-using HipYawPitch    = Temperature<Mask::HipYawPitch>;
+using HipYawPitch    = Temperature<Mask::LHipYawPitch>;
 using LHipRoll       = Temperature<Mask::LHipRoll>;
 using LHipPitch      = Temperature<Mask::LHipPitch>;
 using LKneePitch     = Temperature<Mask::LKneePitch>;
@@ -209,7 +202,7 @@ using LElbowYaw      = Stiffness<Mask::LElbowYaw>;
 using LElbowRoll     = Stiffness<Mask::LElbowRoll>;
 using LWristYaw      = Stiffness<Mask::LWristYaw>;
 using LHand          = Stiffness<Mask::LHand>;
-using HipYawPitch    = Stiffness<Mask::HipYawPitch>;
+using HipYawPitch    = Stiffness<Mask::LHipYawPitch>;
 using LHipRoll       = Stiffness<Mask::LHipRoll>;
 using LHipPitch      = Stiffness<Mask::LHipPitch>;
 using LKneePitch     = Stiffness<Mask::LKneePitch>;

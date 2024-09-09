@@ -1,10 +1,10 @@
 #include "body_chain.h"
 #include <framework/math/rotation_matrices.h>
 
-Eigen::Matrix4f BodyChain::DHTransform(const joints::Sensors &s, int i) {
+Eigen::Matrix4f BodyChain::DHTransform(const bbipc::Sensors &s, int i) {
     Eigen::Matrix4f transform;
     float q = dh[i].gamma;
-    if (dh[i].q) q += s[j[i]];
+    if (dh[i].q) q += s.joints.position[j[i]];
     
     transform <<    cosf(q),    -sinf(q) * cosf(dh[i].alpha),   sinf(q) * sinf(dh[i].alpha),    dh[i].a * cosf(q),
                     sinf(q),    cosf(q) * cosf(dh[i].alpha),    -cosf(q) * sinf(dh[i].alpha),   dh[i].a * sinf(q),
@@ -13,7 +13,7 @@ Eigen::Matrix4f BodyChain::DHTransform(const joints::Sensors &s, int i) {
     return transform;
 }
 
-Eigen::Matrix4f BodyChain::transformation(const joints::Sensors &sensors, int initial, int final) {
+Eigen::Matrix4f BodyChain::transformation(const bbipc::Sensors &sensors, int initial, int final) {
     if (initial == final) 
         return Eigen::Matrix4f::Identity();
 
@@ -23,19 +23,17 @@ Eigen::Matrix4f BodyChain::transformation(const joints::Sensors &sensors, int in
             TM *= DHTransform(sensors, i);
         }
         return TM;
-    }
-    else {
+    } else {
         return RotMat::invert(transformation(sensors, final, initial));
     }
 }
 
-Eigen::Matrix4f BodyChain::transformation(const joints::Sensors &sensors, int dir) {
+Eigen::Matrix4f BodyChain::transformation(const bbipc::Sensors &sensors, int dir) {
     Eigen::Matrix4f TM;
 
     if (dir == 1) {
         return transformation(sensors, 0, (int)dh.size());
-    }
-    else if (dir == -1) {
+    } else if (dir == -1) {
         return transformation(sensors, (int)dh.size(), 0);
     }
     else LOG_ERROR << "not a valid transformation direction: " << dir;

@@ -24,7 +24,7 @@
     #include <bodycontrol/submodules/kick/kick_v3.hpp>
     #include <bodycontrol/submodules/sensor_dump.hpp>
     //#include <bodycontrol/submodules/hold_position.hpp>
-    #include <bodycontrol/submodules/led_disco.hpp>
+    //#include <bodycontrol/submodules/led_disco.hpp>
     #include <bodycontrol/submodules/stand/sit.hpp>
     #include <bodycontrol/submodules/stand/stand.hpp>
     #include <bodycontrol/submodules/do_nothing.hpp>
@@ -43,7 +43,7 @@
     #include <bodycontrol/submodules/sensors/ground_contact.hpp>
 
     #include <bodycontrol/submodules/stabilization/stabilization.hpp>
-    #include <bodycontrol/submodules/motion_design/motion_wrapper.hpp>
+    #include <bodycontrol/submodules/motion_design/motion_design_engine.h>
 
     #include <bodycontrol/submodules/special_motions/bbmf_motion.hpp>
 
@@ -69,7 +69,6 @@
 
         // Calculations
         (KINEMATICS),
-        (CAMPOSE),
         (CENTER_OF_MASS),
         (BUTTON),
         (LED_CTRL),
@@ -86,7 +85,7 @@
 
         // Main motions
         (BC_WALK),
-
+        
         (SIT),
         (INTERPOLATE_TO_STAND),
         //PENALIZED_STANCE,
@@ -127,6 +126,7 @@
         // TEST2,
         // TEST3,
         
+        (CAMPOSE),
         (ENERGY_SAVER),
 
         (NO_OF_BODY_MODULES) // must be last
@@ -213,7 +213,7 @@
         DEPENDENCY(LED_CTRL, FALLCONTROL)
 
     MODULE( KINEMATICS, DoNothing)
-    MODULE( CAMPOSE, CamPose)
+    MODULE( CAMPOSE, CalcCamPose)
     MODULE( CENTER_OF_MASS, DoNothing)
     MODULE( FALLCONTROL, FallControl)
         DEPENDENCY( FALLCONTROL, RESET_BODY_QNS)
@@ -238,8 +238,9 @@
     MOTION (GOALIE_THROW_RIGHT, Motion::GOALIE_THROW_RIGHT, BBMFMotion, "GoalieThrowRight.bbmf")
         DEPENDENCY(GOALIE_THROW_RIGHT, STIFFNESS)
 
-    MOTION(MOTION_DESIGN, Motion::DESIGNER, MotionWrapper)
+    MOTION(MOTION_DESIGN, Motion::DESIGNER, MotionDesignEngine)
         DEPENDENCY(MOTION_DESIGN, STIFFNESS)
+        DEPENDENCY(MOTION_DESIGN, HEAD_MOTION)
 
     MOTION (SIT, Motion::SIT, Sit)
         DEPENDENCY( SIT, RESET_BODY_QNS)

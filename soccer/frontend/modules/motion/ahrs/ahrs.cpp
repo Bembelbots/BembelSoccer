@@ -3,6 +3,7 @@
 
 #include "ahrs.h"
 #include "MadgwickAHRS.h"
+#include "representations/flatbuffers/types/sensors.h"
 
 using namespace Madgwick;
 using namespace std::chrono;
@@ -45,15 +46,16 @@ Eigen::Vector3f AHRSProvider::getAcceleration() {
     return acc;
 }
 
-void AHRSProvider::update(Eigen::Vector3f g, Eigen::Vector3f a) {
-    static Eigen::Vector3f v(0, 0, 0); // velocity
+void AHRSProvider::update(const bbipc::IMU &imu) {
+    auto a{imu.accelerometer};
+    auto g{imu.gyroscope};
 
     // set g to 0 if < eps to eliminate Z-axis drift
-    clampEps(g(0));
-    clampEps(g(1));
-    clampEps(g(2));
+    clampEps(g.x());
+    clampEps(g.y());
+    clampEps(g.z());
 
-    MadgwickAHRSupdateIMU(g(0), g(1), g(2), a(0), a(1), a(2));
+    MadgwickAHRSupdateIMU(g.x(), g.y(), g.z(), a.x(), a.y(), a.z());
 
     // repeated multiplications, use variables to avoid recalculation
     float q0q0 = q0 * q0;

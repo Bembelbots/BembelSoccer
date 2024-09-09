@@ -13,15 +13,16 @@ public:
         static constexpr float THRESHOLD_MS{1000};    // activation threshold (milliseconds until torso is horizontal)
         static const Angle maxBodyAngle = 70.0_deg;   // if torso angle is greater than this, bot is always fallen
         static const Angle fallingRotation = 0.5_deg; // assume bot is stable, if gyro speed is below this value
+        const auto &gyro{bb->sensors.imu.gyroscope};
 
         static EMA gyroRoll{0.f, 0.9f};
         static EMA gyroPitch{0.f, 0.9f};
 
-        gyroRoll += bb->gyro(0);
-        gyroPitch += bb->gyro(1);
+        gyroRoll += gyro.x();
+        gyroPitch += gyro.y();
 
-        Angle roll_angle{Rad{fabsf(bb->bodyAngles(0))}};
-        Angle pitch_angle{Rad{fabsf(bb->bodyAngles(1))}};
+        Angle roll_angle{Rad{fabsf(bb->bodyAngles.x())}};
+        Angle pitch_angle{Rad{fabsf(bb->bodyAngles.y())}};
 
         bb->qns[IS_FALLEN] = false;
         bb->qns[IS_FALLING] = false;
@@ -37,7 +38,7 @@ public:
 
             default:
                 if (pitch_angle > maxBodyAngle || roll_angle > maxBodyAngle) {
-                    float acc_x = fabsf(bb->accel(0));
+                    float acc_x = fabsf(bb->sensors.imu.accelerometer.x());
                     bb->qns[IS_FALLEN] = true;
                     bb->fallenSide = (bb->bodyAngles(1) < 0.0f) ? FallenSide::FRONT : FallenSide::BACK;
                     bb->qns[IS_FALLING] = fabsf(std::max(gyroPitch, gyroRoll)) > fallingRotation.rad();

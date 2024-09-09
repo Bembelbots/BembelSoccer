@@ -2,91 +2,43 @@
 
 #include "joints_base.hpp"
 #include "operators.hpp"
-#include "tags.hpp"
+#include "representations/flatbuffers/types/sensors.h"
 
+#include <representations/flatbuffers/types/actuators.h>
 
 namespace joints {
 namespace details {
-    
+
 template<Mask JB>
 class Stiffness : public JointsBase<JB> {
 
 public:
-
     Stiffness() = default;
 
-    explicit Stiffness(const Joints &j)
-        : JointsBase<JB>(j) {
-    }
+    explicit Stiffness(const Joints &j) : JointsBase<JB>(j) {}
 
-    Stiffness(FromArrayType, const std::array<float, NR_OF_JOINTS> &init)
-        : JointsBase<JB>(init) {
-    }
+    explicit Stiffness(const bbipc::JointArray &j) : JointsBase<JB>(j) {}
 
-    explicit Stiffness(const Actuators &src) {
+    explicit Stiffness(const bbipc::Actuators &src) {
         this->fill(0);
         this->read(src);
     }
 
-    void read(const Actuators &src) {
-        JointsBase<JB>::read(src.get().data(), stiffnessActuators);
-    }
+    explicit Stiffness(const bbipc::Actuators *src) : Stiffness(*src) {}
 
-    void write(Actuators &dst) const {
-        JointsBase<JB>::write(dst.get().data(), stiffnessActuators);
-    }
+    void read(const bbipc::Actuators &src) { JointsBase<JB>::read(src.joints.stiffness); }
 
-private:
-
-    static const std::array<size_t, NR_OF_JOINTS> stiffnessActuators;
+    void read(const bbipc::Actuators *src) { read(*src); }
     
+    void read(const bbipc::JointArray &src) { JointsBase<JB>::read(src); }
+
+    void write(bbipc::Actuators &dst) const { JointsBase<JB>::write(dst.joints.stiffness); }
+
+    void write(bbipc::Actuators *dst) const { write(*dst); }
+
+    void write(bbipc::JointArray &dst) const { JointsBase<JB>::write(dst); }
 };
 JOINTS_ENABLE_OPERATORS(Stiffness);
-
-
-// Do NOT touch the order of this array. Order of entries must be the same as
-// the joint_id enum.
-template<Mask JB>
-const std::array<size_t, NR_OF_JOINTS> Stiffness<JB>::stiffnessActuators = {
-    headYawHardnessActuator,
-    headPitchHardnessActuator,
-
-    lShoulderPitchHardnessActuator,
-    lShoulderRollHardnessActuator,
-
-    lElbowYawHardnessActuator,
-    lElbowRollHardnessActuator,
-
-    lWristYawHardnessActuator,
-    lHandHardnessActuator,
-
-    lHipYawPitchHardnessActuator,
-
-    lHipRollHardnessActuator,
-    lHipPitchHardnessActuator,
-
-    lKneePitchHardnessActuator,
-
-    lAnklePitchHardnessActuator,
-    lAnkleRollHardnessActuator,
-
-    rShoulderPitchHardnessActuator,
-    rShoulderRollHardnessActuator,
-
-    rElbowYawHardnessActuator,
-    rElbowRollHardnessActuator,
-
-    rWristYawHardnessActuator,
-    rHandHardnessActuator,
-
-    rHipRollHardnessActuator,
-    rHipPitchHardnessActuator,
-
-    rKneePitchHardnessActuator,
-
-    rAnklePitchHardnessActuator,
-    rAnkleRollHardnessActuator,
-};
 
 } // namespace details
 } // namespace joints

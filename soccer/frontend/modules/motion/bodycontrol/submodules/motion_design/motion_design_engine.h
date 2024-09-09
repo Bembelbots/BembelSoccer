@@ -1,41 +1,28 @@
 #pragma once
 
-#include "../../../walk/htwk/ankle_balancer.h"
-#include "../../../kinematics/foot.h"
-#include "../../../kinematics/step.h"
-//#include "fast_math.h"
 #include <framework/joints/joints.hpp>
-
-#include <bodycontrol/blackboards/bodyblackboard.h>
-
-#define NUM_SPLINE_POINTS 5
+#include <bodycontrol/internals/submodule.h>
 
 class MotionDesignBlackboard;
 
-class MotionDesignEngine {
-
+class MotionDesignEngine : public SubModule {
 public:
-    MotionDesignEngine();
-    ~MotionDesignEngine();
-    void proceed(BodyBlackboard *bb, MotionDesignBlackboard *calib, Step *step, const AnkleBalancer &ankle_balancer, float &stiffnesVal);
+    void connect(rt::Linker &link) override;
 
-    void set_joints(Step *step, const AnkleBalancer &ankle_balancer, bool isInterpolating);
-
-    static void set_stiffness(Step *step, MotionDesignBlackboard* calib);
-
-    void write_to_blackboard(MotionDesignBlackboard* calib);
-
-    void reset();
+    SubModuleReturnValue step(BodyBlackboard *bb) override;
 
 private:
+    rt::Context<MotionDesignBlackboard, rt::Write> mdbb;
+    BodyBlackboard *bb{nullptr};
 
-    float interpolate_joint(float current, float target, float percentage);
+    joints::Linear<joints::pos::All> motion;
+    joints::Mask updateMask{joints::Mask::All};
 
-    uint32_t start_time = 0;
-    float interpolationPercentage;
-    bool isNewFrame = false;
-    joints::pos::Old start;
-    joints::pos::Old current;
-    joints::pos::Old target;
-    
+    void write_to_blackboard(const joints::Mask &m = joints::Mask::All);
+    void set_motion(TimestampMs start, TimestampMs duration);
+
+    void unstiff_chain(const joints::Mask &m);
+
+    joints::pos::All read_from_blackboard();
+    joints::stiffness::All set_stiffness();
 };
